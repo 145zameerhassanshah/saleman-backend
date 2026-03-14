@@ -4,6 +4,7 @@ const subCategoryRouter=require("./subCategoryRoute");
 const quotationRouter=require("./quotationRouter");
 const orderRouter=require("./OrderRouter");
 const settingRouter=require("./settingRoute");
+const dealerRouter=require("./dealerRoute");
 
 module.exports={
     userRouter,
@@ -11,5 +12,6 @@ module.exports={
     subCategoryRouter,
     quotationRouter,
     orderRouter,
-    settingRouter
+    settingRouter,
+    dealerRouter
 }
