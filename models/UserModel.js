@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const USER_ROLES=require("./userEnum");
 
 const userSchema = new mongoose.Schema({
   industry: {
@@ -48,7 +49,7 @@ const userSchema = new mongoose.Schema({
 
   user_type: {
     type: String,
-    enum: ["super_admin", "admin", "salesman", "dispatcher", "accountant"],
+    enum: Object.values(USER_ROLES),
     required: true
   },
 
