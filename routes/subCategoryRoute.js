@@ -6,9 +6,6 @@ const {
   removeSubCategory
 } = require("../controllers/subCategoryController");
 
-const { roleMiddleware } = require("../middleware/exporter");
-const USER_ROLES = require("../models/userEnum");
-
 const router = Router();
 
 /* GET ALL */
@@ -19,7 +16,6 @@ router.get("/", showAllSubCategories);
 
 router.post(
   "/",
-  roleMiddleware(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
   createSubCategory
 );
 
@@ -27,7 +23,6 @@ router.post(
 
 router.patch(
   "/:id",
-  roleMiddleware(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
   updateSubCategory
 );
 
@@ -35,7 +30,6 @@ router.patch(
 
 router.delete(
   "/:id",
-  roleMiddleware(USER_ROLES.SUPER_ADMIN, USER_ROLES.ADMIN),
   removeSubCategory
 );
 
