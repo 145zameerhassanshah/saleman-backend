@@ -57,6 +57,16 @@ const userSchema = new mongoose.Schema({
     required: true
   },
 
+  otp:{
+    type:String,
+    default:null
+  },
+
+  otpExpiry:{
+    type:Number,
+    default:null
+  },
+
   status: {
     type: String,
     enum: [

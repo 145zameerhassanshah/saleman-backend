@@ -1,40 +1,48 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const userModel=require('../models/UserModel');
 
 
+class AuthService{
 /* ================================
    PASSWORD HASH
 ================================ */
 
-const hashPassword = async (password) => {
+async hashPassword(password){
   return await bcrypt.hash(password, 10);
 };
 
+  generateOTP(){
+    return Math.floor(100000 + Math.random()*9000000).toString();
+  }
 
 /* ================================
    PASSWORD COMPARE
 ================================ */
 
-const comparePassword = async (password, hash) => {
+async comparePassword(password, hash) {
   return await bcrypt.compare(password, hash);
 };
+
+async findUser(email){
+  return await userModel.findOne({email});
+}
 
 
 /* ================================
    GENERATE JWT TOKEN
 ================================ */
 
-const generateToken = (user) => {
+generateToken (user) {
   return jwt.sign(
     {
       id: user._id,
       role: user.user_type,
-      industry: user.industry
     },
     process.env.JWT_SECRET,
     {
-      expiresIn: process.env.JWT_EXPIRE
+      expiresIn: process.env.JWT_EXPIRY
     }
   );
 };
@@ -44,7 +52,7 @@ const generateToken = (user) => {
    VERIFY / DECODE TOKEN
 ================================ */
 
-const verifyToken = (token) => {
+verifyToken (token) {
   return jwt.verify(token, process.env.JWT_SECRET);
 };
 
@@ -53,7 +61,7 @@ const verifyToken = (token) => {
    EMAIL VERIFICATION TOKEN
 ================================ */
 
-const generateVerificationToken = () => {
+generateVerificationToken (){
   return crypto.randomBytes(32).toString("hex");
 };
 
@@ -62,16 +70,10 @@ const generateVerificationToken = () => {
    PASSWORD RESET TOKEN
 ================================ */
 
-const generateResetToken = () => {
+generateResetToken() {
   return crypto.randomBytes(32).toString("hex");
 };
+}
 
 
-module.exports = {
-  hashPassword,
-  comparePassword,
-  generateToken,
-  verifyToken,
-  generateVerificationToken,
-  generateResetToken
-};
+module.exports = new AuthService();
