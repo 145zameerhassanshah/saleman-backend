@@ -47,11 +47,10 @@ const DealerSchema= new mongoose.Schema({
 
   created_by:{
     type:mongoose.Schema.Types.ObjectId,
-    ref:"admin,super_admin",
+    ref:"User",
     required:true
   }
 
 },{timestamps:true});
 
-    
-
+module.exports=mongoose.model("Dealer",DealerSchema);
