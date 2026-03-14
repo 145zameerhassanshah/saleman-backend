@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const userRouter = require("./routes/userRoutes");
+const dealerRouter = require("./routes/dealerRoutes");
 require('dotenv').config();
 
 const connectDB = require('./database/db');
@@ -32,7 +33,7 @@ app.get('/', (req, res) => {
 });
 
 app.use("/users", userRouter);
-
+app.use("/dealers", dealerRouter);
 
 /* ==============================
    SERVER
