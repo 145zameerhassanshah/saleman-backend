@@ -14,31 +14,26 @@ const {
 
 router.post(
   "/create",
-  roleMiddleware(USER_ROLES.ADMIN,USER_ROLES.SUPER_ADMIN),
   createDealer
 );
 
 router.get(
   "/",
-  roleMiddleware(USER_ROLES.ADMIN,USER_ROLES.SUPER_ADMIN),
   getDealers
 );
 
 router.get(
   "/:id",
-  roleMiddleware(USER_ROLES.ADMIN,USER_ROLES.SUPER_ADMIN),
   getDealerById
 );
 
 router.put(
   "/:id",
-  roleMiddleware(USER_ROLES.ADMIN,USER_ROLES.SUPER_ADMIN),
   updateDealer
 );
 
 router.delete(
   "/:id",
-  roleMiddleware(USER_ROLES.ADMIN,USER_ROLES.SUPER_ADMIN),
   deleteDealer
 );
 

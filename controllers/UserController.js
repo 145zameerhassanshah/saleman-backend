@@ -82,16 +82,10 @@ async function login(req, res) {
 
     const token = AuthService.generateToken(isUser);
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: false, // true in production
-      sameSite: "strict",
-      maxAge: 20 * 24 * 60 * 60 * 1000,
-    });
-
     return res.status(200).json({
       success: true,
       message: "Login successful",
+      token,
       user: {
         id: isUser._id,
         email: isUser.email,
