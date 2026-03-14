@@ -1,17 +1,18 @@
 const {createUser,login,getLoggedInUser,logout,getUser,forgotPassword,verifyOTP,resetPassword}=require("../controllers/UserController");
 const {Router}=require("express");
 const {authMiddleware,roleMiddleware} = require("../middleware/exporter");
-const {super_admin_seed}=require("../utils/superAdminSeed");
+// const {super_admin_seed}=require("../utils/superAdminSeed");
+const USER_ROLES=require("../models/userEnum")
 
 const router=Router();
 
-router.get("/super-admin",async (_,res)=>{
-    const isStored=await super_admin_seed();
-    if(!isStored) return res.status(401).json({message:"Error seeding super admin"});
+// router.get("/super-admin",async (_,res)=>{
+//     const isStored=await super_admin_seed();
+//     if(!isStored) return res.status(401).json({message:"Error seeding super admin"});
 
-    return res.status(200).json({message:"Seed successfully"});
-})
-router.post("/create-user",authMiddleware,roleMiddleware,createUser);
+//     return res.status(200).json({message:"Seed successfully"});
+// })
+router.post("/create-user",authMiddleware,roleMiddleware(USER_ROLES.SUPER_ADMIN,USER_ROLES.ADMIN),createUser);
 router.post("/auth/login",login);
 router.get("/me",authMiddleware,getLoggedInUser);
 router.get("/user-profile/:id",authMiddleware,getUser);
