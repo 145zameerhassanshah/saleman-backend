@@ -63,38 +63,46 @@ Object.keys(user).forEach((key) => {
 
 async function login(req, res) {
   const { email, password } = req.body;
+
   try {
     const isUser = await AuthService.findUser(email);
-    if (!isUser) return res.status(400).json({ message: "Incorrect email" });
+
+    if (!isUser) {
+      return res.status(400).json({ message: "Incorrect email" });
+    }
+
     const comparePassword = await AuthService.comparePassword(
       password,
-      isUser.password,
+      isUser.password
     );
-    if (!comparePassword)
+
+    if (!comparePassword) {
       return res.status(400).json({ message: "Incorrect Password" });
+    }
 
     const token = AuthService.generateToken(isUser);
 
-    res.cookie("refreshToken", token, {
+    res.cookie("token", token, {
       httpOnly: true,
-      secure: false,
+      secure: false, // true in production
       sameSite: "strict",
       maxAge: 20 * 24 * 60 * 60 * 1000,
     });
 
     return res.status(200).json({
       success: true,
-      token,
+      message: "Login successful",
       user: {
         id: isUser._id,
         email: isUser.email,
         role: isUser.user_type,
       },
     });
+
   } catch (error) {
-    return res
-      .status(500)
-      .json({ message: "Something went wrong. Try again later" });
+    return res.status(500).json({
+      message: "Something went wrong. Try again later",
+    });
   }
 }
 

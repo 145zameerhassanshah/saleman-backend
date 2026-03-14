@@ -1,11 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-const userRouter = require("./routes/userRoutes");
+const {authMiddleware, roleMiddleware}=require("./middleware/exporter");
+const USER_ROLES=require("./models/userEnum")
+const {userRouter,categoryRouter,subCategoryRouter,quotationRouter} = require("./routes/exporter");
 require('dotenv').config();
 
 const connectDB = require('./database/db');
-
 const app = express();
 
 connectDB();
@@ -32,7 +33,9 @@ app.get('/', (req, res) => {
 });
 
 app.use("/users", userRouter);
-
+app.use("/category",authMiddleware,categoryRouter);
+app.use("/sub-category",authMiddleware,subCategoryRouter);
+app.use("/quotation",authMiddleware,roleMiddleware(USER_ROLES.SUPER_ADMIN,USER_ROLES.ADMIN),quotationRouter);
 
 /* ==============================
    SERVER
