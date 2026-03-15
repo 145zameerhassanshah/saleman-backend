@@ -10,7 +10,7 @@ const {
 } = require("../controllers/IndustryController");
 
 router.post(
-  "/create",
+  "/",
   createIndustry
 );
 

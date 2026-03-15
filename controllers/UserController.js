@@ -187,10 +187,29 @@ async function login(req, res) {
    }
   }
 
+  async function getUsersByIndustry(req,res){
+    try {
+      const industryId=req.params.industry_id;
+      const userByIndustry=await userModel.find({industry:industryId}).select("-password -__v -email_verified_at -email_verification_token -blocked_until -block_reason reject_reason -approved_by");
+
+      if(!userByIndustry) return res.status(400).json({success:false,message:"Industry doesn't exist"});
+
+      res.status(201).json({
+      success: true,
+      userByIndustry,
+    });
+    } catch (error) {
+      console.log(err);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching users",
+    });
+    }
+  }
 
   async function logout(req, res) {
     try {
-      res.clearCookie("refreshToken", {
+      res.clearCookie("token", {
         httpOnly: true,
         sameSite: "strict",
         secure: false,
@@ -231,5 +250,6 @@ module.exports = {
   getUser,
   forgotPassword,
   verifyOTP,
-  resetPassword
+  resetPassword,
+  getUsersByIndustry
 };

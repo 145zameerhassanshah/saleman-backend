@@ -24,13 +24,17 @@ const industrySchema=new mongoose.Schema({
         type:String,
         default:null,
     },
-    addrss:{
+    address:{
         type:String,
         required:true,
     },
     startDate:{
         type:Date,
         default:null,
+    },
+    city:{
+        type:String,
+        required:true
     },
     createdBy:{
         type:mongoose.Schema.Types.ObjectId,
