@@ -1,9 +1,8 @@
 const express = require("express");
 const router = express.Router();
 
-const { authMiddleware,roleMiddleware } = require("../middleware/exporter");
+const { roleMiddleware } = require("../middleware/exporter");
 const USER_ROLES = require("../models/userEnum");   
-
 const {
   createDealer,
   getDealers,
@@ -19,6 +18,7 @@ router.post(
 
 router.get(
   "/",
+  roleMiddleware(USER_ROLES.ADMIN,USER_ROLES.SUPER_ADMIN),
   getDealers
 );
 

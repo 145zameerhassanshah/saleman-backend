@@ -5,6 +5,7 @@ const quotationModel=require("./QuotationModel");
 const quotationItem=require("./QuotationItem");
 const orderModel=require("./Order");
 const orderItemModel=require("./OrderItem");
-const settingModel=require("./Setting")
+const settingModel=require("./Setting");
+const industryModel=require(".")
 
 module.exports={productCategory,userModel,subCategory,quotationModel,quotationItem,orderModel,orderItemModel,settingModel};
