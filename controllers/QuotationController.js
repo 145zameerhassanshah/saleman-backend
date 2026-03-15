@@ -9,7 +9,7 @@ async function showAll(req, res) {
 
     const quotations = await quotationModel
       .find()
-      .populate("client_id")
+      .populate("dealer_id")
       .sort({ createdAt: -1 });
 
     return res.status(200).json({ quotations });

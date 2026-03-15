@@ -2,10 +2,8 @@ const productCategory=require("./ProductCategory");
 const userModel=require("./UserModel");
 const subCategory=require("./SubCategory");
 const quotationModel=require("./QuotationModel");
-const quotationItem=require("./QuotationItem");
-const orderModel=require("./Order");
-const orderItemModel=require("./OrderItem");
-const settingModel=require("./Setting");
-const industryModel=require(".")
-
-module.exports={productCategory,userModel,subCategory,quotationModel,quotationItem,orderModel,orderItemModel,settingModel};
+const quotationItem=require("./QuotationItem")
+const dealerModel=require("./DealerModel");
+const productModel=require("./ProductModel");
+const industryModel=require("./IndustryModel")
+module.exports={productCategory,userModel,subCategory,quotationModel,quotationItem,dealerModel,productModel,industryModel};
