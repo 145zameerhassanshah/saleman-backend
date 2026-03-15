@@ -81,7 +81,7 @@ const invoiceSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: Object.values(ORDER_STATUS),
-    default: INVOICE_STATUS.DRAFT
+    default: ORDER_STATUS.UNAPPROVED
   },
 
   notes: {

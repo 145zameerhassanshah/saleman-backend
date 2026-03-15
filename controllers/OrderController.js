@@ -180,7 +180,7 @@ async function store(req, res) {
 
     return res.status(201).json({
 
-      message: "Invoice created successfully",
+      message: "Order created successfully",
       order
 
     });
@@ -210,7 +210,7 @@ async function update(req, res) {
 
     if (!order) {
       return res.status(404).json({
-        message: "Invoice not found"
+        message: "Order not found"
       });
     }
 
@@ -331,7 +331,7 @@ async function update(req, res) {
 
 
     return res.status(200).json({
-      message: "Invoice updated successfully"
+      message: "Order updated successfully"
     });
 
   } catch (error) {
@@ -355,22 +355,27 @@ async function remove(req, res) {
 
     const id = req.params.id;
 
+    const order = await orderModel.findOne({ _id: id, status: "unapproved" });
+
+    if (!order) {
+      return res.status(400).json({
+        message: "Order not found or is activated by director"
+      });
+    }
+
     const payments = await paymentModel.find({ order_id: id });
 
     if (payments.length > 0) {
-
       return res.status(400).json({
-        message: "Invoice has payments and cannot be deleted"
+        message: "Order has payments and cannot be deleted"
       });
-
     }
 
+    await orderModel.findByIdAndDelete(id);
     await orderItemModel.deleteMany({ order_id: id });
 
-    await orderModel.findByIdAndDelete(id);
-
     return res.status(200).json({
-      message: "Invoice deleted successfully"
+      message: "Oder deleted successfully"
     });
 
   } catch (error) {
@@ -417,7 +422,7 @@ async function generateInvoiceNumber() {
     "-" +
     today.getFullYear().toString().slice(-2);
 
-  return `INV-${serialFormatted}-${formattedDate}`;
+  return `ODR-${serialFormatted}-${formattedDate}`;
 }
 
 
