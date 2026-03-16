@@ -4,19 +4,11 @@ const AuthService = require("../sevices/authutilties");
 const authMiddleware = async (req, res, next) => {
   try {
 
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader) {
-      return res.status(401).json({
-        message: "Authorization token required"
-      });
-    }
-
-    const token = authHeader.split(" ")[1];
+    const token = req.cookies.token;
 
     if (!token) {
       return res.status(401).json({
-        message: "Invalid token format"
+        message: "Login required",
       });
     }
 
@@ -28,40 +20,18 @@ const authMiddleware = async (req, res, next) => {
 
     if (!user) {
       return res.status(401).json({
-        message: "User not found"
+        message: "Invalid token",
       });
     }
-
-    /* OPTIONAL STATUS CHECK */
-
-    // if (user.status === "inactive") {
-    //   return res.status(403).json({
-    //     message: "Account inactive"
-    //   });
-    // }
-
-    // if (user.status === "permanent_blocked") {
-    //   return res.status(403).json({
-    //     message: "Account permanently blocked"
-    //   });
-    // }
-
-    // if (user.status === "temp_blocked" && user.blocked_until > new Date()) {
-    //   return res.status(403).json({
-    //     message: "Account temporarily blocked"
-    //   });
-    // }
 
     req.user = decoded;
 
     next();
 
   } catch (error) {
-
     return res.status(401).json({
-      message: "Invalid or expired token"
+      message: "Invalid or expired token",
     });
-
   }
 };
 

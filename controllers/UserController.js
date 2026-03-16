@@ -86,10 +86,16 @@ return res.status(400).json({
 
     const token = AuthService.generateToken(isUser);
 
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false, // true in production
+      sameSite: "strict",
+      maxAge: 20 * 24 * 60 * 60 * 1000,
+    });
+
     return res.status(200).json({
       success: true,
       message: "Login successful",
-      token,
       user: {
         id: isUser._id,
         email: isUser.email,
@@ -140,7 +146,7 @@ return res.status(400).json({
           email,
           "Password Reset OTP",
           `<h2>Your OTP is: ${code}</h2>
-           <p>This OTP will expire in 10 minutes.</p>`
+           <p>This OTP will expire in 5 minutes.</p>`
         );
       
         return res.status(200).json({message:"Otp sent. Please check your gmail to verify"});
@@ -185,10 +191,29 @@ return res.status(400).json({
    }
   }
 
+  async function getUsersByIndustry(req,res){
+    try {
+      const industryId=req.params.industry_id;
+      const userByIndustry=await userModel.find({industry:industryId}).select("-password -__v -email_verified_at -email_verification_token -blocked_until -block_reason reject_reason -approved_by");
+
+      if(!userByIndustry) return res.status(400).json({success:false,message:"Industry doesn't exist"});
+
+      res.status(201).json({
+      success: true,
+      userByIndustry,
+    });
+    } catch (error) {
+      console.log(err);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching users",
+    });
+    }
+  }
 
   async function logout(req, res) {
     try {
-      res.clearCookie("refreshToken", {
+      res.clearCookie("token", {
         httpOnly: true,
         sameSite: "strict",
         secure: false,
@@ -229,5 +254,6 @@ module.exports = {
   getUser,
   forgotPassword,
   verifyOTP,
-  resetPassword
+  resetPassword,
+  getUsersByIndustry
 };

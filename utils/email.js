@@ -11,7 +11,7 @@ async function sendEmail(to, subject, html){
     });
 
     await transporter.sendMail({
-      from: `"We Order " <${process.env.EMAIL_USER}>`,
+      from: `"We Order "<${process.env.EMAIL_USER}>`,
       to,
       subject,
       html,

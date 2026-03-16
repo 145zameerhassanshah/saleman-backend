@@ -8,7 +8,7 @@ const Dealer = require("../models/DealerModel");
 const createDealer = async (req,res)=>{
   try{
 
-    const {name,email,phone_number,company_name} = req.body;
+    const {email,phone_number,company_name} = req.body;
 
     const existDealer = await Dealer.findOne({
       $or:[

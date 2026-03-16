@@ -1,11 +1,15 @@
 const mongoose = require("mongoose");
 
-const INVOICE_STATUS = {
-  DRAFT: "draft",
+const ORDER_STATUS = {
+  PENDING:"pending",
   UNPAID: "unpaid",
-  PARTIAL: "partially_paid",
+  UNAPPROVED:"unapproved",
+  ACTIVE:"active",
+  PARTIAL: "partial",
   PAID: "paid",
-  CANCELLED: "cancelled"
+  CANCELLED: "cancelled",
+  POSTED:"posted",
+  DISPATCHED:"dispatched"
 };
 
 const invoiceSchema = new mongoose.Schema({
@@ -76,8 +80,8 @@ const invoiceSchema = new mongoose.Schema({
 
   status: {
     type: String,
-    enum: Object.values(INVOICE_STATUS),
-    default: INVOICE_STATUS.DRAFT
+    enum: Object.values(ORDER_STATUS),
+    default: ORDER_STATUS.UNAPPROVED
   },
 
   notes: {

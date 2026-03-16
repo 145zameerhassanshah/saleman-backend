@@ -1,7 +1,5 @@
 const router = require("express").Router();
 
-const USER_ROLES = require("../models/userEnum");
-
 const {
   createProduct,
   getProducts,
