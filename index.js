@@ -34,6 +34,11 @@ app.use("/order",authMiddleware,orderRouter);
 app.use("/industry",authMiddleware,roleMiddleware(USER_ROLES.SUPER_ADMIN),industryRouter);
 // app.use("/setting",authMiddleware,roleMiddleware(USER_ROLES.SUPER_ADMIN,USER_ROLES.ADMIN),settingRouter);
 
+
+/* ==============================
+   SERVER
+============================== */
+
 const port = process.env.PORT || 3002;
 
 app.listen(port, () => {

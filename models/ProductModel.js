@@ -13,7 +13,10 @@ const productSchema = new mongoose.Schema({
     ref: "SubCategory",
     default: null
   },
-
+image:{
+      type: String,
+      required:true
+},
   name:{
     type:String
   },
