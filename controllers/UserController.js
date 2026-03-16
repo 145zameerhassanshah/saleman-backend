@@ -68,8 +68,10 @@ async function login(req, res) {
     const isUser = await AuthService.findUser(email);
 
     if (!isUser) {
-      return res.status(400).json({ message: "Incorrect email" });
-    }
+return res.status(400).json({
+  success: false,
+  message: "Incorrect email"
+});    }
 
     const comparePassword = await AuthService.comparePassword(
       password,
@@ -77,8 +79,10 @@ async function login(req, res) {
     );
 
     if (!comparePassword) {
-      return res.status(400).json({ message: "Incorrect Password" });
-    }
+return res.status(400).json({
+  success: false,
+  message: "Incorrect Password"
+});    }
 
     const token = AuthService.generateToken(isUser);
 
