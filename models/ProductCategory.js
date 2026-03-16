@@ -13,6 +13,10 @@ const categorySchema=new mongoose.Schema({
     is_active:{
         type:Boolean,
         default:true,
+    },
+    createdBy:{
+        type:String,
+        required:true,
     }
 
 },{timestamps:true});
