@@ -7,13 +7,11 @@ const ORDER_STATUS = {
   ACTIVE:"active",
   PARTIAL: "partial",
   PAID: "paid",
-  CANCELLED: "cancelled",
   POSTED:"posted",
   DISPATCHED:"dispatched"
 };
 
-const invoiceSchema = new mongoose.Schema({
-
+const orderSchema = new mongoose.Schema({
   order_number: {
     type: String,
     required: true,
@@ -93,4 +91,4 @@ const invoiceSchema = new mongoose.Schema({
   timestamps: true
 });
 
-module.exports=mongoose.model("Order",invoiceSchema);
+module.exports=mongoose.model("Order",orderSchema);

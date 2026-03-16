@@ -110,10 +110,10 @@ async function login(req, res) {
     try {
       const user = req.user;
       const loggedInUser = await userModel
-        .findById(user.id )
-        .select(
-          "-password -__v -email_verified_at -email_verification_token -blocked_until -block_reason reject_reason -approved_by",
-        );
+  .findById(user.id)
+  .select(
+    "-password -__v -email_verified_at -email_verification_token -blocked_until -block_reason -reject_reason -approved_by -otp -otpExpiry"
+  );
       return res
         .status(200)
         .json({ loggedInUser, message: "User Retrieved Successfully" });
