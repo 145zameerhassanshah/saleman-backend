@@ -190,7 +190,25 @@ return res.status(400).json({
      return res.status(500).json({message:"Something went wrong. Try again"});
    }
   }
-
+async function changePassword(req,res){
+    const {email,currentPassword,newPassword}=req.body;
+    try {
+      const user=await AuthService.findUser(email); 
+      if(!user){
+        return res.status(401).json({message:"User not found"});
+      }
+      const isMatch=await AuthService.comparePassword(currentPassword,user.password);
+      if(!isMatch){
+        return res.status(401).json({message:"Current password is incorrect"});
+      }
+      user.password=await AuthService.hashPassword(newPassword);
+      await user.save();
+      return res.status(200).json({message:"Password changed successfully"});
+    }
+      catch (error) {
+        return res.status(500).json({message:"Something went wrong. Try again"});
+    }
+  }
   async function getUsersByIndustry(req,res){
     try {
       const industryId=req.params.industry_id;
@@ -255,5 +273,6 @@ module.exports = {
   forgotPassword,
   verifyOTP,
   resetPassword,
+  changePassword,
   getUsersByIndustry
 };

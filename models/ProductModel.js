@@ -21,9 +21,10 @@ image:{
     type:String
   },
 
-  code:{
+  sku:{
     type:String,
-    unique:true
+    unique:true,
+    required:true
   },
 
   mrp:{
