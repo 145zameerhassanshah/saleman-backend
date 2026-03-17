@@ -2,8 +2,8 @@ const { productCategory } = require("../models/exporter");
 
 async function createCategory(req, res) {
   try {
-
-    const newCategory = new productCategory(req.body);
+    const newCategory = new productCategory({...req.body,
+      businessId: req.params.id,});
     await newCategory.save();
 
     return res.status(201).json({
@@ -15,6 +15,28 @@ async function createCategory(req, res) {
 
     return res.status(500).json({
       message: "Something went wrong."
+    });
+
+  }
+}
+
+async function getIndustryCategory(req, res) {
+  try {
+
+    const category = await productCategory.find({
+      businessId: req.params.id
+    });
+
+    return res.status(200).json({ // ✅ FIXED
+      success: true,
+      category
+    });
+
+  } catch (error) {
+
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching categories"
     });
 
   }
@@ -101,6 +123,7 @@ module.exports = {
   showAll,
   
   updateCategory,
+  getIndustryCategory,
   removeCategory
 };
 

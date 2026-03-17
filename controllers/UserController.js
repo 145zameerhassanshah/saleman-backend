@@ -6,9 +6,6 @@ const { sendEmail } = require("../utils/email");
 async function createUser(req, res) {
 
     const { email, phone_number, whatsapp_number } = req.body;
-
-    /* CHECK EMAIL */
-
     const emailExist = await userModel.findOne({ email });
 
     if (emailExist) {
@@ -28,6 +25,7 @@ async function createUser(req, res) {
 
     if (phoneExist) {
       return res.status(400).json({
+        success:false,
         message: "User with same phone number already exists"
       });
     }
@@ -40,7 +38,6 @@ const newUser = new userModel({
   ...req.body,
   password: hashPassword
 });
-
     await newUser.save();
     let user = newUser.toObject();
 
@@ -57,7 +54,6 @@ Object.keys(user).forEach((key) => {
     return res.status(201).json({
       success: true,
       message: `${req.body.user_type} created successfully`,
-      user
     });
 }
 
@@ -212,7 +208,7 @@ async function changePassword(req,res){
   async function getUsersByIndustry(req,res){
     try {
       const industryId=req.params.industry_id;
-      const userByIndustry=await userModel.find({industry:industryId}).select("-password -__v -email_verified_at -email_verification_token -blocked_until -block_reason reject_reason -approved_by");
+      const userByIndustry=await userModel.find({industry:industryId}).select("-password -__v -email_verified_at -email_verification_token -blocked_until -block_reason -reject_reason -approved_by");
 
       if(!userByIndustry) return res.status(400).json({success:false,message:"Industry doesn't exist"});
 
@@ -221,7 +217,7 @@ async function changePassword(req,res){
       userByIndustry,
     });
     } catch (error) {
-      console.log(err);
+      console.log(error);
     res.status(500).json({
       success: false,
       message: "Error fetching users",
