@@ -19,5 +19,40 @@ async function super_admin_seed(){
 
     return true;
 }
+async function admin_seed() {
+  try {
 
-module.exports={super_admin_seed};
+    const existing = await userModel.findOne({
+      email: "zameerhassanshah69@gmail.com"
+    });
+
+    if (existing) {
+      console.log("Admin already exists");
+      return true;
+    }
+
+    const hashPassword = await AuthService.hashPassword("Admin@123");
+
+    const admin = new userModel({
+      name: "Admin User",
+      email: "zameerhassanshah69@gmail.com",
+      phone_number: "03001234567",
+      whatsapp_number: "03001234567",
+      city: "Lahore",
+      address: "Johar Town",
+      user_type: "admin",
+      password: hashPassword
+    });
+
+    await admin.save();
+
+    console.log("Admin created");
+
+    return true;
+
+  } catch (error) {
+    console.error("Admin seed error:", error);
+    return false;
+  }
+}
+module.exports = { super_admin_seed, admin_seed };

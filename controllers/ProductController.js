@@ -8,9 +8,9 @@ const Product = require("../models/ProductModel");
 const createProduct = async (req,res)=>{
   try{
 
-    const { code } = req.body;
+    const { sku } = req.body;
 
-    const existProduct = await Product.findOne({ code });
+    const existProduct = await Product.findOne({ sku });
 
     if(existProduct){
       return res.status(400).json({
