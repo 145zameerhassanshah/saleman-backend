@@ -9,10 +9,10 @@ async function getAllIndustries(req, res) {
       industry,
     });
   } catch (error) {
-    console.log(err);
+    console.log(error);
     res.status(500).json({
       success: false,
-      message: "Error fetching dealers",
+      message: "Error fetching industries",
     });
   }
 }
@@ -33,7 +33,7 @@ async function createIndustry(req, res) {
 
     const industry = new industryModel({
       ...req.body,
-      created_by: req.user.id,
+      createdBy: req.user.id,
     });
 
     await industry.save();
@@ -44,7 +44,7 @@ async function createIndustry(req, res) {
       industry,
     });
   } catch (error) {
-    console.log(err);
+    console.log(error.message);
     res.status(500).json({
       success: false,
       message: "Server error",

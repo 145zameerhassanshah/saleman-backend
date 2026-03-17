@@ -2,10 +2,9 @@ const { productCategory } = require("../models/exporter");
 
 async function createCategory(req, res) {
   try {
-
-    const newCategory = new productCategory(req.body);
+    const newCategory = new productCategory({...req.body,
+      createdBy: req.user.id,});
     await newCategory.save();
-
     return res.status(201).json({
       message: "Category added!",
       category: newCategory
@@ -18,6 +17,13 @@ async function createCategory(req, res) {
     });
 
   }
+}
+
+async function getMyAddedCategory(req,res){
+  const id=req.user.id;
+  const category=await productCategory.find({createdBy:id});
+
+  return res.status(201).json({category});
 }
 
 async function showAll(req, res) {
@@ -100,5 +106,6 @@ module.exports = {
   createCategory,
   showAll,
   updateCategory,
+  getMyAddedCategory,
   removeCategory
 };
