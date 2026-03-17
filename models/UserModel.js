@@ -66,23 +66,14 @@ businessId: {
     type:Number,
     default:null
   },
-
-  status: {
-    type: String,
-    enum: [
-      "pending",
-      "active",
-      "inactive",
-      "rejected",
-      "temp_blocked",
-      "permanent_blocked"
-    ],
-    default: "pending"
-  },
-
   email_verified_at: {
     type: Date,
     default: null
+  },
+  status:{
+    type:String,
+    enum:["Active","Left"],
+    default:"Active"
   },
 
   email_verification_token: {
@@ -104,12 +95,6 @@ businessId: {
     type: String,
     default: null
   },
-
-  approved_by: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "UserModel",
-    default: null
-  }
 }, {
   timestamps: true
 });
