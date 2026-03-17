@@ -100,17 +100,20 @@ async function removeCategory(req, res) {
 
     if (!deletedCategory) {
       return res.status(404).json({
+        success:false,
         message: "Category not found"
       });
     }
 
     return res.status(200).json({
+      success:true,
       message: "Category deleted"
     });
 
   } catch (error) {
 
     return res.status(500).json({
+      success:false,
       message: "Something went wrong."
     });
 
