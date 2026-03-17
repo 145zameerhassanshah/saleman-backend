@@ -4,9 +4,9 @@ const router=Router();
 
 
 router.get("/",showAll);
-router.post("/",createCategory);
+router.post("/:id",createCategory);
 router.patch("/:id",updateCategory);
 router.delete("/:id",removeCategory);
-router.get("/my-added",getMyAddedCategory);
+router.get("/my-added/:id",getMyAddedCategory);
 
 module.exports=router

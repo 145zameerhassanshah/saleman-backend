@@ -3,7 +3,7 @@ const { productCategory } = require("../models/exporter");
 async function createCategory(req, res) {
   try {
     const newCategory = new productCategory({...req.body,
-      createdBy: req.user.id,});
+      business: req.params.id,});
     await newCategory.save();
     return res.status(201).json({
       message: "Category added!",
@@ -20,8 +20,7 @@ async function createCategory(req, res) {
 }
 
 async function getMyAddedCategory(req,res){
-  const id=req.user.id;
-  const category=await productCategory.find({createdBy:id});
+  const category=await productCategory.find({businessId:req.params.id});
 
   return res.status(201).json({category});
 }

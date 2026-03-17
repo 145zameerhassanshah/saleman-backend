@@ -14,9 +14,9 @@ const categorySchema=new mongoose.Schema({
         type:Boolean,
         default:true,
     },
-    createdBy:{
+    businessId:{
         type:String,
-        required:true,
+      required:true,
     }
 
 },{timestamps:true});
