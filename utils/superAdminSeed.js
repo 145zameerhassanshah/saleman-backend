@@ -1,4 +1,5 @@
 const userModel = require("../models/UserModel");
+const industryModel = require("../models/IndustryModel");
 const AuthService=require("../sevices/authutilties");
 
 async function super_admin_seed(){
@@ -19,16 +20,26 @@ async function super_admin_seed(){
 
     return true;
 }
+
 async function admin_seed() {
   try {
 
     const existing = await userModel.findOne({
-      email: "zameerhassanshah69@gmail.com"
+      email: "zameerhassanshah@gmail.com"
     });
 
     if (existing) {
       console.log("Admin already exists");
       return true;
+    }
+
+    const business = await industryModel.findOne({
+      businessName: "ABC Pvt Ltd" 
+    });
+
+    if (!business) {
+      console.log("Business not found, create business first");
+      return false;
     }
 
     const hashPassword = await AuthService.hashPassword("Admin@123");
@@ -41,12 +52,13 @@ async function admin_seed() {
       city: "Lahore",
       address: "Johar Town",
       user_type: "admin",
-      password: hashPassword
+      password: hashPassword,
+      businessId: business._id 
     });
 
     await admin.save();
 
-    console.log("Admin created");
+    console.log("Admin created with businessId");
 
     return true;
 
