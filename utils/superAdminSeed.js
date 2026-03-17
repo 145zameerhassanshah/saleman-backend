@@ -25,7 +25,7 @@ async function admin_seed() {
   try {
 
     const existing = await userModel.findOne({
-      email: "zameerhassanshah@gmail.com"
+      email: "zameerhassanshah69@gmail.com"
     });
 
     if (existing) {

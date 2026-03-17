@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Product = require("../models/ProductModel");
+const fs = require("fs");
 
 /* =========================
    CREATE PRODUCT
@@ -8,7 +9,18 @@ const Product = require("../models/ProductModel");
 const createProduct = async (req, res) => {
   try {
 
-    const { name, sku, mrp, category_id } = req.body;
+    const {
+      name,
+      sku,
+      mrp,
+      discount_percent,
+      order_no,
+      description,
+      category_id,
+      is_active
+    } = req.body;
+
+    /* VALIDATION */
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success:false, message: "Product name is required" });
@@ -26,14 +38,15 @@ const createProduct = async (req, res) => {
       return res.status(400).json({ success:false, message: "Category is required" });
     }
 
-    if (!req.file && !req.body.image) {
+    if (!req.file) {
       return res.status(400).json({ success:false, message: "Product image is required" });
     }
 
-    /* 🔥 SKU CHECK (within business) */
+    /* SKU CHECK (BUSINESS LEVEL) */
+
     const existProduct = await Product.findOne({
       sku,
-      businessId: req.user.businessId
+      // businessId: req.user.businessId
     });
 
     if (existProduct) {
@@ -43,11 +56,19 @@ const createProduct = async (req, res) => {
       });
     }
 
-    /* 🔥 CREATE */
+    /* CREATE */
+
     const product = new Product({
-      ...req.body,
-      businessId: req.user.businessId, // ✅ IMPORTANT
-      image: req.file ? req.file.filename : req.body.image
+      name: name.trim(),
+      sku: sku.trim(),
+      mrp: Number(mrp),
+      discount_percent: Number(discount_percent || 0),
+      order_no: Number(order_no || 0),
+      description,
+      category_id,
+      is_active: is_active === "true" || is_active === true,
+      // businessId: req.user.businessId,
+      image: req.file.filename
     });
 
     await product.save();
@@ -59,22 +80,24 @@ const createProduct = async (req, res) => {
     });
 
   } catch (err) {
-    res.status(500).json({ success:false, message: err.message });
+    res.status(500).json({
+      success:false,
+      message: err.message
+    });
   }
 };
 
 /* =========================
-   GET PRODUCTS (MY BUSINESS)
+   GET PRODUCTS
 ========================= */
 
 const getProducts = async (req,res)=>{
   try{
 
     const products = await Product.find({
-      businessId: req.user.businessId // ✅ FILTER
+      businessId: req.user.businessId
     })
     .populate("category_id","name")
-    .populate("subcategory_id","name");
 
     res.status(200).json({
       success:true,
@@ -108,7 +131,7 @@ const getProductById = async (req,res)=>{
 
     const product = await Product.findOne({
       _id:id,
-      businessId:req.user.businessId // ✅ SECURITY
+      businessId:req.user.businessId
     })
     .populate("category_id","name")
     .populate("subcategory_id","name");
@@ -151,7 +174,7 @@ const updateProduct = async (req, res) => {
 
     const product = await Product.findOne({
       _id:id,
-      businessId:req.user.businessId // ✅ CHECK OWNERSHIP
+      businessId:req.user.businessId
     });
 
     if(!product){
@@ -162,6 +185,7 @@ const updateProduct = async (req, res) => {
     }
 
     /* SKU CHECK */
+
     if (req.body.sku) {
       const existing = await Product.findOne({
         sku:req.body.sku,
@@ -177,9 +201,31 @@ const updateProduct = async (req, res) => {
       }
     }
 
-    const updateData = { ...req.body };
+    const updateData = {
+      name: req.body.name,
+      sku: req.body.sku,
+      mrp: req.body.mrp,
+      discount_percent: req.body.discount_percent,
+      order_no: req.body.order_no,
+      description: req.body.description,
+      category_id: req.body.category_id,
+      subcategory_id: req.body.subcategory_id,
+      is_active: req.body.is_active
+    };
+
+    /* IMAGE UPDATE */
 
     if (req.file) {
+
+      // delete old image
+      if (product.image) {
+        try {
+          fs.unlinkSync(`uploads/${product.image}`);
+        } catch (err) {
+          console.log("Old image not found");
+        }
+      }
+
       updateData.image = req.file.filename;
     }
 
@@ -221,7 +267,7 @@ const deleteProduct = async (req,res)=>{
 
     const product = await Product.findOne({
       _id:id,
-      businessId:req.user.businessId // ✅ SECURITY
+      businessId:req.user.businessId
     });
 
     if(!product){
@@ -229,6 +275,16 @@ const deleteProduct = async (req,res)=>{
         success:false,
         message:"Product not found"
       });
+    }
+
+    /* DELETE IMAGE */
+
+    if (product.image) {
+      try {
+        fs.unlinkSync(`uploads/${product.image}`);
+      } catch (err) {
+        console.log("Image not found");
+      }
     }
 
     await Product.findByIdAndDelete(id);

@@ -1,42 +1,5 @@
-const userModel = require("../models/UserModel");
-const AuthService = require("../sevices/authutilties");
-
-const authMiddleware = async (req, res, next) => {
-  try {
-
-    const token = req.cookies.token;
-
-    if (!token) {
-      return res.status(401).json({
-        message: "Login required",
-      });
-    }
-
-    const decoded = AuthService.verifyToken(token);
-
-    const user = await userModel
-      .findById(decoded.id)
-      .select("-password");
-
-    if (!user) {
-      return res.status(401).json({
-        message: "Invalid token",
-      });
-    }
-
-    req.user = decoded;
-
-    next();
-
-  } catch (error) {
-    return res.status(401).json({
-      message: "Invalid or expired token",
-    });
-  }
-};
-
-module.exports = authMiddleware;
-
+// const userModel = require("../models/UserModel");
+// const AuthService = require("../sevices/authutilties");
 
 // const authMiddleware = async (req, res, next) => {
 //   try {
@@ -44,7 +7,9 @@ module.exports = authMiddleware;
 //     const token = req.cookies.token;
 
 //     if (!token) {
-//       return res.status(401).json({ message: "Login required" });
+//       return res.status(401).json({
+//         message: "Login required",
+//       });
 //     }
 
 //     const decoded = AuthService.verifyToken(token);
@@ -54,14 +19,12 @@ module.exports = authMiddleware;
 //       .select("-password");
 
 //     if (!user) {
-//       return res.status(401).json({ message: "Invalid token" });
+//       return res.status(401).json({
+//         message: "Invalid token",
+//       });
 //     }
 
-//     req.user = {
-//       id: user._id,
-//       role: user.user_type,
-//       businessId: user.businessId
-//     };
+//     req.user = decoded;
 
 //     next();
 
@@ -73,3 +36,44 @@ module.exports = authMiddleware;
 // };
 
 // module.exports = authMiddleware;
+
+
+const userModel = require("../models/UserModel");
+const AuthService = require("../sevices/authutilties");
+
+const authMiddleware = async (req, res, next) => {
+  try {
+
+    const token = req.cookies.token;
+
+    if (!token) {
+      return res.status(401).json({ message: "Login required" });
+    }
+
+    const decoded = AuthService.verifyToken(token);
+
+    const user = await userModel
+      .findById(decoded.id)
+      .select("-password");
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid token" });
+    }
+
+    /* ✅ IMPORTANT FIX */
+    req.user = {
+      id: user._id,
+      role: user.user_type,
+      businessId: user.businessId || user._id // 🔥 fallback bhi add kiya
+    };
+
+    next();
+
+  } catch (error) {
+    return res.status(401).json({
+      message: "Invalid or expired token",
+    });
+  }
+};
+
+module.exports = authMiddleware;

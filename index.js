@@ -5,9 +5,9 @@ const {authMiddleware, roleMiddleware}=require("./middleware/exporter");
 const USER_ROLES=require("./models/userEnum")
 const {userRouter,categoryRouter,subCategoryRouter,quotationRouter,dealerRouter,productRouter,industryRouter,orderRouter} = require("./routes/exporter");
 require('dotenv').config();
-
 const connectDB = require('./database/db');
 const app = express();
+app.use("/uploads", express.static("uploads"));
 
 connectDB();
 
