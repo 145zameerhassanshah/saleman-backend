@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-
+import upload from "../middleware/multer";
 const { roleMiddleware } = require("../middleware/exporter");
 const USER_ROLES = require("../models/userEnum");   
 const {
@@ -12,26 +12,23 @@ const {
 } = require("../controllers/DealerController");
 
 router.post(
-  "/create",
-  roleMiddleware(USER_ROLES.ADMIN),
+  "/",upload.single("business_logo"),
   createDealer
 );
 
 router.get(
-  "/",
-  roleMiddleware(USER_ROLES.ADMIN,USER_ROLES.SUPER_ADMIN),
+  "/:id",
   getDealers
 );
 
 router.get(
   "/:id",
-  roleMiddleware(USER_ROLES.ADMIN),
   getDealerById
 );
 
 router.put(
   "/:id",
-  roleMiddleware(USER_ROLES.ADMIN),
+  upload.single("business_logo"),
   updateDealer
 );
 

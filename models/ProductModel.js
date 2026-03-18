@@ -13,6 +13,11 @@ const productSchema = new mongoose.Schema({
     ref: "SubCategory",
     default: null
   },
+  businessId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "IndustryModel",
+    default:null
+  },
 image:{
       type: String,
       required:true

@@ -26,7 +26,8 @@ app.get('/', (req, res) => {
 
 app.use("/users", userRouter);
 app.use("/products",authMiddleware,roleMiddleware(USER_ROLES.ADMIN),productRouter);
-app.use("/dealers", dealerRouter);
+app.use("/dealers",authMiddleware,roleMiddleware(USER_ROLES.ADMIN),dealerRouter);
+
 app.use("/category",authMiddleware,roleMiddleware(USER_ROLES.ADMIN),categoryRouter);
 app.use("/sub-category",authMiddleware,roleMiddleware(USER_ROLES.ADMIN),subCategoryRouter);
 app.use("/quotation",authMiddleware,roleMiddleware(USER_ROLES.ADMIN,USER_ROLES.SALESMAN),quotationRouter);
