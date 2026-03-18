@@ -89,14 +89,20 @@ return res.status(400).json({
       maxAge: 20 * 24 * 60 * 60 * 1000,
     });
 
+    delete isUser.password;
+    delete isUser.__v;
+    delete isUser.email_verification_token;
+    delete isUser.email_verified_at;
+    delete isUser.blocked_until;
+    delete isUser.block_reason;
+    delete isUser.reject_reason;
+    delete isUser.otp;
+    delete isUser.otpExpiry;
+
     return res.status(200).json({
       success: true,
       message: "Login successful",
-      user: {
-        id: isUser._id,
-        email: isUser.email,
-        role: isUser.user_type,
-      },
+      isUser
     });
 
   } catch (error) {
@@ -112,7 +118,7 @@ return res.status(400).json({
       const loggedInUser = await userModel
   .findById(user.id)
   .select(
-    "-password -__v -email_verified_at -email_verification_token -blocked_until -block_reason -reject_reason -approved_by -otp -otpExpiry"
+    "-password -__v -email_verified_at -email_verification_token -blocked_until -block_reason -reject_reason -otp -otpExpiry"
   );
       return res
         .status(200)
