@@ -6,6 +6,12 @@ const categorySchema=new mongoose.Schema({
         type:String,
         required:true
     },
+    businessId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "IndustryModel" ,
+      default:null
+    },
+    
     order_no:{
         type:Number,
         default:null
@@ -13,10 +19,6 @@ const categorySchema=new mongoose.Schema({
     is_active:{
         type:Boolean,
         default:true,
-    },
-    businessId:{
-        type:String,
-      required:true,
     }
 
 },{timestamps:true});

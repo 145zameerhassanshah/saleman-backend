@@ -1,4 +1,5 @@
 const router = require("express").Router();
+const upload = require("../middleware/multer"); 
 
 const {
   createProduct,
@@ -10,28 +11,23 @@ const {
 
 
 router.post(
-  "/create",
+  "/create/:id",
+  upload.single("image"), 
   createProduct
 );
 
-router.get(
-  "/",
-  getProducts
-);
 
-router.get(
-  "/:id",
-  getProductById
-);
+router.get("/:id", getProducts);
+router.get("/:id", getProductById);
+
 
 router.put(
   "/:id",
+  upload.single("image"), 
   updateProduct
 );
 
-router.delete(
-  "/:id",
-  deleteProduct
-);
+
+router.delete("/:id", deleteProduct);
 
 module.exports = router;
