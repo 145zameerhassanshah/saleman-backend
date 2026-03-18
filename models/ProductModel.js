@@ -34,7 +34,7 @@ image:{
 businessId:{
   type: mongoose.Schema.Types.ObjectId,
   ref: "IndustryModel",
-  required:true
+  default:null
 },
   discount_percent:{
     type:Number,

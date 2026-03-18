@@ -14,7 +14,6 @@ async function createUser(req, res) {
       });
     }
 
-    /* CHECK PHONE OR WHATSAPP */
 
     const phoneExist = await userModel.findOne({
       $or: [
@@ -30,7 +29,6 @@ async function createUser(req, res) {
       });
     }
 
-    /* CREATE USER */
 
    const hashPassword = await AuthService.hashPassword(req.body.password);
 
@@ -41,10 +39,8 @@ const newUser = new userModel({
     await newUser.save();
     let user = newUser.toObject();
 
-/* REMOVE PASSWORD */
 delete user.password;
 
-/* REMOVE NULL VALUES */
 Object.keys(user).forEach((key) => {
   if (user[key] === null || user[key] === undefined) {
     delete user[key];
@@ -84,7 +80,7 @@ return res.status(400).json({
 
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false, // true in production
+      secure: false, 
       sameSite: "strict",
       maxAge: 20 * 24 * 60 * 60 * 1000,
     });

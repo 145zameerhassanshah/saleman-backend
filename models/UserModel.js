@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const USER_ROLES=require("./userEnum");
 
 const userSchema = new mongoose.Schema({
-businessId: {
+industry: {
   type: mongoose.Schema.Types.ObjectId,
   ref: "IndustryModel" ,
   default:null

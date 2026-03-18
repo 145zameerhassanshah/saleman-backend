@@ -42,12 +42,11 @@ const createProduct = async (req, res) => {
       return res.status(400).json({ success:false, message: "Product image is required" });
     }
 
-    /* SKU CHECK (BUSINESS LEVEL) */
 
     const existProduct = await Product.findOne({
       sku,
-      // businessId: req.user.businessId
     });
+
 
     if (existProduct) {
       return res.status(400).json({
@@ -56,7 +55,6 @@ const createProduct = async (req, res) => {
       });
     }
 
-    /* CREATE */
 
     const product = new Product({
       name: name.trim(),
@@ -67,7 +65,7 @@ const createProduct = async (req, res) => {
       description,
       category_id,
       is_active: is_active === "true" || is_active === true,
-      // businessId: req.user.businessId,
+      businessId: req.params.id,
       image: req.file.filename
     });
 
@@ -87,15 +85,12 @@ const createProduct = async (req, res) => {
   }
 };
 
-/* =========================
-   GET PRODUCTS
-========================= */
 
 const getProducts = async (req,res)=>{
   try{
 
     const products = await Product.find({
-      businessId: req.user.businessId
+      businessId: req.params.id
     })
     .populate("category_id","name")
 
@@ -131,10 +126,9 @@ const getProductById = async (req,res)=>{
 
     const product = await Product.findOne({
       _id:id,
-      businessId:req.user.businessId
+      businessId:req.params.id
     })
     .populate("category_id","name")
-    .populate("subcategory_id","name");
 
     if(!product){
       return res.status(404).json({
@@ -156,9 +150,6 @@ const getProductById = async (req,res)=>{
   }
 };
 
-/* =========================
-   UPDATE PRODUCT
-========================= */
 
 const updateProduct = async (req, res) => {
   try {
@@ -174,7 +165,7 @@ const updateProduct = async (req, res) => {
 
     const product = await Product.findOne({
       _id:id,
-      businessId:req.user.businessId
+      businessId:req.params.id
     });
 
     if(!product){
@@ -184,12 +175,11 @@ const updateProduct = async (req, res) => {
       });
     }
 
-    /* SKU CHECK */
 
     if (req.body.sku) {
       const existing = await Product.findOne({
         sku:req.body.sku,
-        businessId:req.user.businessId,
+        businessId:req.params.id,
         _id:{ $ne:id }
       });
 
@@ -209,15 +199,12 @@ const updateProduct = async (req, res) => {
       order_no: req.body.order_no,
       description: req.body.description,
       category_id: req.body.category_id,
-      subcategory_id: req.body.subcategory_id,
       is_active: req.body.is_active
     };
 
-    /* IMAGE UPDATE */
 
     if (req.file) {
 
-      // delete old image
       if (product.image) {
         try {
           fs.unlinkSync(`uploads/${product.image}`);
@@ -249,9 +236,6 @@ const updateProduct = async (req, res) => {
   }
 };
 
-/* =========================
-   DELETE PRODUCT
-========================= */
 
 const deleteProduct = async (req,res)=>{
   try{
@@ -267,7 +251,7 @@ const deleteProduct = async (req,res)=>{
 
     const product = await Product.findOne({
       _id:id,
-      businessId:req.user.businessId
+      businessId:req.params.id
     });
 
     if(!product){
@@ -277,7 +261,6 @@ const deleteProduct = async (req,res)=>{
       });
     }
 
-    /* DELETE IMAGE */
 
     if (product.image) {
       try {
