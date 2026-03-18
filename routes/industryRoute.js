@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
- 
+const upload = require("../middleware/multer"); 
 const {
   createIndustry,
   getAllIndustries,
@@ -11,6 +11,7 @@ const {
 
 router.post(
   "/",
+  upload.single("business_logo"),
   createIndustry
 );
 

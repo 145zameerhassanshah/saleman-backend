@@ -4,16 +4,21 @@ const { sendEmail } = require("../utils/email");
 
 
 async function createUser(req, res) {
-
+  try {
     const { email, phone_number, whatsapp_number } = req.body;
+
+    /* ================= EMAIL CHECK ================= */
+
     const emailExist = await userModel.findOne({ email });
 
     if (emailExist) {
       return res.status(400).json({
+        success: false,
         message: "User with similar email already exists"
       });
     }
 
+    /* ================= PHONE CHECK ================= */
 
     const phoneExist = await userModel.findOne({
       $or: [
@@ -24,33 +29,47 @@ async function createUser(req, res) {
 
     if (phoneExist) {
       return res.status(400).json({
-        success:false,
+        success: false,
         message: "User with same phone number already exists"
       });
     }
 
+    /* ================= PASSWORD ================= */
 
-   const hashPassword = await AuthService.hashPassword(req.body.password);
+    const hashPassword = await AuthService.hashPassword(req.body.password);
 
-const newUser = new userModel({
-  ...req.body,
-  password: hashPassword
-});
+    /* ================= PROFILE IMAGE ================= */
+
+    let profile_image = null;
+
+    if (req.file) {
+      profile_image = req.file.filename; 
+      // OR req.file.path (if using cloud or full path)
+    }
+
+    /* ================= CREATE USER ================= */
+
+    const newUser = new userModel({
+      ...req.body,
+      password: hashPassword,
+      profile_image // ✅ added
+    });
+
     await newUser.save();
-    let user = newUser.toObject();
 
-delete user.password;
-
-Object.keys(user).forEach((key) => {
-  if (user[key] === null || user[key] === undefined) {
-    delete user[key];
-  }
-});
 
     return res.status(201).json({
       success: true,
       message: `${req.body.user_type} created successfully`,
     });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
 }
 
 async function login(req, res) {
@@ -261,11 +280,69 @@ async function changePassword(req,res){
     }
   }
 
+  async function updateUser(req, res) {
+  try {
+    const userId = req.params.id;
+    const user = await userModel.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    /* ================= EMAIL CHECK ================= */
+    if (req.body.email && req.body.email !== user.email) {
+      const emailExist = await userModel.findOne({
+        email: req.body.email,
+        _id: { $ne: userId },
+      });
+
+      if (emailExist) {
+        return res.status(400).json({
+          success: false,
+          message: "Email already in use",
+        });
+      }
+    }
+
+    /* ================= UPDATE FIELDS ================= */
+
+    if (req.body.name) user.name = req.body.name;
+    if (req.body.email) user.email = req.body.email;
+
+    if (req.body.status) user.status = req.body.status;
+
+    /* ================= PROFILE IMAGE ================= */
+
+    if (req.file) {
+      user.profile_image = req.file.filename;
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "User updated successfully",
+      updatedUser: user,
+    });
+
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
+
 
 module.exports = {
   createUser,
   login,
   getLoggedInUser,
+  updateUser,
   logout,
   getUser,
   forgotPassword,
