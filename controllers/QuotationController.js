@@ -54,9 +54,11 @@ async function getProductsByCategory(req, res) {
    STORE QUOTATION
 ================================ */
 
-async function store(req, res) {
+async function create(req, res) {
 
   try {
+
+    const businessId = req.params.businessId;
 
     const {
       dealer_id,
@@ -67,40 +69,30 @@ async function store(req, res) {
       tax,
       discount_type,
       tax_type,
-      notes
+      notes,
+      deliveryNotes
     } = req.body;
 
     const quotationNumber = await generateQuotationNumber();
-
-    /* SUBTOTAL */
 
     const subtotal = items.reduce((sum, i) => {
       return sum + (i.quantity * i.unit_price);
     }, 0);
 
-
-    /* DISCOUNT */
-
     const discountAmount =
-      discount_type === "percent"
+      discount_type === "percentage"
         ? (subtotal * discount) / 100
         : discount;
 
-
-    /* TAX */
-
     const taxAmount =
-      tax_type === "percent"
+      tax_type === "percentage"
         ? ((subtotal - discountAmount) * tax) / 100
         : tax;
 
-
     const total = subtotal - discountAmount + taxAmount;
 
-
-    /* CREATE QUOTATION */
-
     const quotation = await quotationModel.create({
+      businessId,
       quotation_number: quotationNumber,
       dealer_id,
       quotation_date,
@@ -111,12 +103,11 @@ async function store(req, res) {
       discount_type,
       tax_type,
       total,
-      notes
+      notes,
+      deliveryNotes
     });
 
-
     /* CREATE ITEMS */
-
     for (const item of items) {
 
       if (!item.product_id) continue;
@@ -135,7 +126,6 @@ async function store(req, res) {
 
     }
 
-
     return res.status(201).json({
       message: "Quotation created successfully!",
       quotation
@@ -148,10 +138,7 @@ async function store(req, res) {
     });
 
   }
-}
-
-
-/* ================================
+}/* ================================
    UPDATE QUOTATION
 ================================ */
 
@@ -159,7 +146,7 @@ async function update(req, res) {
 
   try {
 
-    const id = req.params.id;
+    const id = req.params.businessId;
 
     const quotation = await quotationModel.findById(id);
 
@@ -178,7 +165,8 @@ async function update(req, res) {
       tax,
       discount_type,
       tax_type,
-      notes
+      notes,
+      deliveryNotes
     } = req.body;
 
 
@@ -188,13 +176,13 @@ async function update(req, res) {
 
 
     const discountAmount =
-      discount_type === "percent"
+      discount_type === "percentage"
         ? (subtotal * discount) / 100
         : discount;
 
 
     const taxAmount =
-      tax_type === "percent"
+      tax_type === "percentage"
         ? ((subtotal - discountAmount) * tax) / 100
         : tax;
 
@@ -212,7 +200,8 @@ async function update(req, res) {
       discount_type,
       tax_type,
       total,
-      notes
+      notes,
+      deliveryNotes
     });
 
 
@@ -266,7 +255,7 @@ async function remove(req, res) {
 
   try {
 
-    const id = req.params.id;
+    const id = req.params.businessId;
 
     await quotationItem.deleteMany({
       quotation_id: id
@@ -328,7 +317,7 @@ async function generateQuotationNumber() {
 module.exports = {
   showAll,
   getProductsByCategory,
-  store,
+  create,
   update,
   remove
 };

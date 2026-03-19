@@ -42,19 +42,14 @@ const {
   deleteDealer
 } = require("../controllers/DealerController");
 
-/* CREATE */
 router.post("/create/:businessId", upload.single("business_logo"), createDealer);
 
-/* GET ALL (BY BUSINESS) */
 router.get("/business/:businessId", getDealers);
 
-/* GET SINGLE */
 router.get("/:dealerId", getDealerById);
 
-/* UPDATE */
 router.put("/:dealerId", upload.single("business_logo"), updateDealer);
 
-/* DELETE */
 router.delete("/:dealerId", deleteDealer);
 
 module.exports = router;
