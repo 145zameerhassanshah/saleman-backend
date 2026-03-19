@@ -1,8 +1,8 @@
 const router = require("express").Router();
 const quotationController = require("../controllers/QuotationController");
 
-router.get("/", quotationController.showAll);
-router.post("/", quotationController.store);
+router.get("/Quotation/:businessId", quotationController.showAll);
+router.post("/create/:businessId", quotationController.create);
 router.patch("/:id", quotationController.update);
 router.delete("/:id", quotationController.remove);
 

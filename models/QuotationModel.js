@@ -70,7 +70,12 @@ businessId: {
   notes: {
     type: String,
     default: null
+  },
+    deliveryNotes: {
+    type: String,
+    default: null
   }
+
 
 }, {
   timestamps: true
