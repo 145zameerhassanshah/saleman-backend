@@ -15,8 +15,8 @@ async function showAll(req, res) {
   try {
 
     const orders = await orderModel
-      .find()
-      .populate("dealer_id")
+      .find({businessId:req.params.id})
+      .populate("dealer_id createdBy")
       .sort({ createdAt: -1 });
 
     return res.status(200).json({ orders });
@@ -66,25 +66,24 @@ async function getProductsByCategory(req, res) {
 ================================ */
 
 async function store(req, res) {
-
-  try {
-
     const {
       dealer_id,
-      currency_id,
       order_date,
       due_date,
       discount,
       discount_type,
       tax,
       tax_type,
-      advance_paid,
-      notes
+      notes,
+      businessId,
+      createdBy,
+      deliveryNotes
     } = req.body;
+
 
     const items = req.body.items || [];
 
-    const orderNumber = await generateInvoiceNumber();
+    const orderNumber = await generateOrderNumber();
 
 
     /* SUBTOTAL */
@@ -119,8 +118,9 @@ async function store(req, res) {
 
       order_number: orderNumber,
       dealer_id,
-      currency_id,
+      businessId,
       order_date,
+      createdBy,
       due_date,
       subtotal,
       discount: discountAmount,
@@ -128,9 +128,16 @@ async function store(req, res) {
       tax: taxAmount,
       tax_type,
       total,
-      notes
-
+      notes,
+      deliveryNotes
     });
+
+    if(req.user.role==="admin") {
+      order.status="approved"
+      await order.save();
+    };
+
+
 
 
     /* CREATE ITEMS */
@@ -142,6 +149,7 @@ async function store(req, res) {
       await orderItemModel.create({
 
         order_id: order._id,
+        item_name: item.item_name,
         product_id: item.product_id,
         quantity: item.quantity,
         unit_price: item.unit_price,
@@ -159,23 +167,23 @@ async function store(req, res) {
 
     /* ADVANCE PAYMENT */
 
-    if (advance_paid && advance_paid > 0) {
+    // if (advance_paid && advance_paid > 0) {
 
-      await paymentModel.create({
+    //   await paymentModel.create({
 
-        order_id: order._id,
-        payment_date: order_date,
-        amount: advance_paid,
-        payment_method: "Advance"
+    //     order_id: order._id,
+    //     payment_date: order_date,
+    //     amount: advance_paid,
+    //     payment_method: "Advance"
 
-      });
+    //   });
 
-    }
+    // }
 
 
     /* UPDATE PAYMENT SUMMARY */
 
-    await order.updatePaymentSummary();
+    // await order.updatePaymentSummary();
 
 
     return res.status(201).json({
@@ -183,15 +191,7 @@ async function store(req, res) {
       message: "Order created successfully",
       order
 
-    });
-
-  } catch (error) {
-
-    return res.status(500).json({
-      message: "Something went wrong"
-    });
-
-  }
+    })
 
 }
 
@@ -224,7 +224,6 @@ async function update(req, res) {
       discount_type,
       tax,
       tax_type,
-      advance_paid,
       notes
     } = req.body;
 
@@ -299,35 +298,35 @@ async function update(req, res) {
 
     /* HANDLE ADVANCE PAYMENT */
 
-    if (advance_paid && advance_paid > 0) {
+    // if (advance_paid && advance_paid > 0) {
 
-      const advancePayment = await paymentModel.findOne({
-        order_id: id,
-        payment_method: "Advance"
-      });
+    //   const advancePayment = await paymentModel.findOne({
+    //     order_id: id,
+    //     payment_method: "Advance"
+    //   });
 
-      if (advancePayment) {
+    //   if (advancePayment) {
 
-        advancePayment.amount = advance_paid;
-        advancePayment.payment_date = order_date;
+    //     advancePayment.amount = advance_paid;
+    //     advancePayment.payment_date = order_date;
 
-        await advancePayment.save();
+    //     await advancePayment.save();
 
-      } else {
+    //   } else {
 
-        await paymentModel.create({
-          order_id: id,
-          payment_date: order_date,
-          amount: advance_paid,
-          payment_method: "Advance"
-        });
+    //     await paymentModel.create({
+    //       order_id: id,
+    //       payment_date: order_date,
+    //       amount: advance_paid,
+    //       payment_method: "Advance"
+    //     });
 
-      }
+    //   }
 
-    }
+    // }
 
 
-    await order.updatePaymentSummary();
+    // await order.updatePaymentSummary();
 
 
     return res.status(200).json({
@@ -363,13 +362,13 @@ async function remove(req, res) {
       });
     }
 
-    const payments = await paymentModel.find({ order_id: id });
+    // const payments = await paymentModel.find({ order_id: id });
 
-    if (payments.length > 0) {
-      return res.status(400).json({
-        message: "Order has payments and cannot be deleted"
-      });
-    }
+    // if (payments.length > 0) {
+    //   return res.status(400).json({
+    //     message: "Order has payments and cannot be deleted"
+    //   });
+    // }
 
     await orderModel.findByIdAndDelete(id);
     await orderItemModel.deleteMany({ order_id: id });
@@ -393,7 +392,7 @@ async function remove(req, res) {
    GENERATE INVOICE NUMBER
 ================================ */
 
-async function generateInvoiceNumber() {
+async function generateOrderNumber() {
 
   const last = await orderModel
     .findOne()
@@ -403,7 +402,7 @@ async function generateInvoiceNumber() {
 
   if (last && last.order_number) {
 
-    const match = last.order_number.match(/INV-(\d+)-/);
+    const match = last.order_number.match(/ORD-(\d+)-/);
 
     if (match) {
       serial = parseInt(match[1]) + 1;
@@ -422,7 +421,7 @@ async function generateInvoiceNumber() {
     "-" +
     today.getFullYear().toString().slice(-2);
 
-  return `ODR-${serialFormatted}-${formattedDate}`;
+  return `ORD-${serialFormatted}-${formattedDate}`;
 }
 
 
