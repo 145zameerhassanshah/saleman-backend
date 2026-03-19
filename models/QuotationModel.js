@@ -1,7 +1,11 @@
 const mongoose = require("mongoose");
 
 const quotationSchema = new mongoose.Schema({
-
+businessId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "IndustryModel",
+    required: true
+  },
   quotation_number: {
     type: String,
     required: true,

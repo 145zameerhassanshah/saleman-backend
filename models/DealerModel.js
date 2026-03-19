@@ -1,31 +1,36 @@
 const mongoose= require('mongoose');
+
 const DealerSchema= new mongoose.Schema({
-    name:{
-        type:String,
-        required:true
-    },
-    email:{
-        type:String,
-        required:true,
-        unique:true
-    },
-    phone_number:{
+  name:{
+    type:String,
+    required:true
+  },
+  email:{
+    type:String,
+    required:true,
+    unique:true
+  },
+  businessId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "IndustryModel",
+    default:null
+  },
+  phone_number:{
+    type:String,
+    required:true,
+    unique:true
+  },
+  whatsapp_number:{
+    type:String,
+    required:true,
+    unique:true
+  },
+  company_name:{
+    type:String,
+    required:true
+  },
 
-        type:String,
-        required:true,
-        unique:true
-    },
-    whatsapp_number:{
-        type:String,
-        required:true,
-        unique:true
-    },
-    company_name:{
-        type:String,
-        required:true
-
-    },
-      business_logo:{
+  business_logo:{
     type:String
   },
 
@@ -43,6 +48,11 @@ const DealerSchema= new mongoose.Schema({
 
   country:{
     type:String
+  },
+
+  is_active:{                 
+    type:Boolean,
+    default:true
   },
 
   created_by:{

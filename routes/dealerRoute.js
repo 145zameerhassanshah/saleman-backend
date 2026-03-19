@@ -1,8 +1,39 @@
-const express = require("express");
-const router = express.Router();
-import upload from "../middleware/multer";
-const { roleMiddleware } = require("../middleware/exporter");
-const USER_ROLES = require("../models/userEnum");   
+// const router = require("express").Router();
+// const upload = require("../middleware/multer"); 
+// const {
+//   createDealer,
+//   getDealers,
+//   getDealerById,
+//   updateDealer,
+//   deleteDealer
+// } = require("../controllers/DealerController");
+
+// router.post(
+//   "/create/:id",
+//   upload.single("business_logo"), 
+//   createDealer
+// );
+
+
+// router.get("/:id", getDealers);
+// router.get("/:id", getDealerById);
+
+
+// router.put(
+//   "/:id",
+//   upload.single("business_logo"), 
+//   updateDealer
+// );
+
+
+// router.delete("/:id", deleteDealer);
+
+// module.exports = router;
+
+
+const router = require("express").Router();
+const upload = require("../middleware/multer");
+
 const {
   createDealer,
   getDealers,
@@ -11,31 +42,19 @@ const {
   deleteDealer
 } = require("../controllers/DealerController");
 
-router.post(
-  "/",upload.single("business_logo"),
-  createDealer
-);
+/* CREATE */
+router.post("/create/:businessId", upload.single("business_logo"), createDealer);
 
-router.get(
-  "/:id",
-  getDealers
-);
+/* GET ALL (BY BUSINESS) */
+router.get("/business/:businessId", getDealers);
 
-router.get(
-  "/:id",
-  getDealerById
-);
+/* GET SINGLE */
+router.get("/:dealerId", getDealerById);
 
-router.put(
-  "/:id",
-  upload.single("business_logo"),
-  updateDealer
-);
+/* UPDATE */
+router.put("/:dealerId", upload.single("business_logo"), updateDealer);
 
-router.delete(
-  "/:id",
-  roleMiddleware(USER_ROLES.ADMIN),
-  deleteDealer
-);
+/* DELETE */
+router.delete("/:dealerId", deleteDealer);
 
 module.exports = router;
