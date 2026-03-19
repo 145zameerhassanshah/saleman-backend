@@ -4,6 +4,7 @@ const ORDER_STATUS = {
   PENDING:"pending",
   UNPAID: "unpaid",
   UNAPPROVED:"unapproved",
+  APPROVED:"approved",
   ACTIVE:"active",
   PARTIAL: "partial",
   PAID: "paid",
@@ -18,11 +19,21 @@ const orderSchema = new mongoose.Schema({
     unique: true,
     trim: true
   },
+  businessId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "IndustryModel" ,
+    required:true
+  },
 
   dealer_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Dealer",
     required: true
+  },
+  createdBy:{
+    type:mongoose.Schema.Types.ObjectId,
+    ref:"UserModel",
+    required:true
   },
   order_date: {
     type: Date,
@@ -85,6 +96,10 @@ const orderSchema = new mongoose.Schema({
   notes: {
     type: String,
     default: null
+  },
+  deliveryNotes:{
+    type:String,
+    default:null
   }
 
 }, {
