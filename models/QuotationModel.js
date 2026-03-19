@@ -63,7 +63,7 @@ businessId: {
 
   status: {
     type: String,
-    enum: [ "pending", "accepted", "rejected"],
+    enum: [ "pending", "approved", "rejected"],
     default: "pending"
   },
 created_by: {

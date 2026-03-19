@@ -62,7 +62,7 @@ async function create(req, res) {
     const { businessId } = req.params;
 
     const userId = req.user._id;
-    const role = req.user.user_type?.toLowerCase(); // ✅ FIX
+    const role = req.user.role?.toLowerCase(); 
 
     const {
       dealer_id,
@@ -134,7 +134,6 @@ async function create(req, res) {
 
     const quotationNumber = await generateQuotationNumber();
 
-    // ✅ ROLE FIX
     const status = role === "admin" ? "approved" : "pending";
 
     const quotation = await quotationModel.create({
@@ -152,7 +151,7 @@ async function create(req, res) {
       notes,
       deliveryNotes,
       created_by: userId,
-      updated_by: userId, // ✅ ADD
+      updated_by: userId, 
       status,
     });
 
