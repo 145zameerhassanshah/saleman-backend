@@ -234,7 +234,7 @@ async function update(req, res) {
     await quotation.updateOne({
       ...req.body,
       subtotal,
-      updated_by: userId, // ✅ FIX
+      updated_by: userId, 
     });
 
     await quotationItem.deleteMany({ quotation_id: id });
