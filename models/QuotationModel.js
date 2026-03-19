@@ -69,7 +69,8 @@ businessId: {
 created_by: {
   type: mongoose.Schema.Types.ObjectId,
   ref: "UserModel",
-default: null},
+required: true
+},
 updated_by: {
   type: mongoose.Schema.Types.ObjectId,
   ref: "UserModel",
