@@ -63,10 +63,18 @@ businessId: {
 
   status: {
     type: String,
-    enum: ["draft", "sent", "accepted", "rejected"],
-    default: "draft"
+    enum: [ "pending", "accepted", "rejected"],
+    default: "pending"
   },
-
+created_by: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "UserModel",
+default: null},
+updated_by: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "UserModel",
+  default: null
+},
   notes: {
     type: String,
     default: null
