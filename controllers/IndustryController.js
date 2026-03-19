@@ -20,6 +20,8 @@ async function getAllIndustries(req, res) {
 async function createIndustry(req, res) {
   try {
     const { businessName, registrationNo } = req.body;
+
+    /* ================= CHECK EXIST ================= */
     const isExist = await industryModel.findOne({
       $or: [{ businessName }, { registrationNo }],
     });
@@ -31,8 +33,17 @@ async function createIndustry(req, res) {
       });
     }
 
+    /* ================= HANDLE IMAGE ================= */
+    let business_logo = null;
+
+    if (req.file) {
+      business_logo = req.file.filename;
+    }
+
+    /* ================= CREATE ================= */
     const industry = new industryModel({
       ...req.body,
+      business_logo, // save image
       createdBy: req.user.id,
     });
 
@@ -43,8 +54,10 @@ async function createIndustry(req, res) {
       message: "Business created successfully",
       industry,
     });
+
   } catch (error) {
     console.log(error.message);
+
     res.status(500).json({
       success: false,
       message: "Server error",

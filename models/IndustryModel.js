@@ -6,7 +6,7 @@ const industrySchema=new mongoose.Schema({
         type:String,
         required:true,
     },
-    logo:{
+    business_logo:{
         type:String,
         default:null,
     },
