@@ -153,41 +153,29 @@ const getProductById = async (req,res)=>{
 
 const updateProduct = async (req, res) => {
   try {
-
     const { id } = req.params;
+    const isactive=req.body?.is_active==='true'?true:false;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.status(400).json({
-        success:false,
-        message: "Invalid product ID"
-      });
+      return res.status(400).json({ success: false, message: "Invalid product ID" });
     }
 
-    const product = await Product.findOne({
-      _id:id,
-      businessId:req.params.id
-    });
+    // ✅ businessId from req.user, not req.params
+    const product = await Product.findOne({ _id: id, businessId: req.body.industry });
 
-    if(!product){
-      return res.status(404).json({
-        success:false,
-        message:"Product not found"
-      });
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
     }
-
 
     if (req.body.sku) {
       const existing = await Product.findOne({
-        sku:req.body.sku,
-        businessId:req.params.id,
-        _id:{ $ne:id }
+        sku: req.body.sku,
+        businessId: req.body.industry,
+        _id: { $ne: id },
       });
 
       if (existing) {
-        return res.status(400).json({
-          success:false,
-          message:"SKU already used"
-        });
+        return res.status(400).json({ success: false, message: "SKU already used" });
       }
     }
 
@@ -199,40 +187,22 @@ const updateProduct = async (req, res) => {
       order_no: req.body.order_no,
       description: req.body.description,
       category_id: req.body.category_id,
-      is_active: req.body.is_active
+      is_active: isactive,
     };
 
-
     if (req.file) {
-
       if (product.image) {
-        try {
-          fs.unlinkSync(`uploads/${product.image}`);
-        } catch (err) {
-          console.log("Old image not found");
-        }
+        try { fs.unlinkSync(`uploads/${product.image}`); } catch { console.log("Old image not found"); }
       }
-
       updateData.image = req.file.filename;
     }
 
-    const updated = await Product.findByIdAndUpdate(
-      id,
-      updateData,
-      { new:true }
-    );
+    const updated = await Product.findByIdAndUpdate(id, updateData, { new: true });
 
-    res.status(200).json({
-      success:true,
-      message:"Product updated successfully",
-      product:updated
-    });
+    res.status(200).json({ success: true, message: "Product updated successfully", product: updated });
 
   } catch (err) {
-    res.status(500).json({
-      success:false,
-      message: err.message
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -251,7 +221,6 @@ const deleteProduct = async (req,res)=>{
 
     const product = await Product.findOne({
       _id:id,
-      businessId:req.params.id
     });
 
     if(!product){

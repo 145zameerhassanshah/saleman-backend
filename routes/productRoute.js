@@ -21,7 +21,7 @@ router.get("/:id", getProducts);
 router.get("/:id", getProductById);
 
 
-router.put(
+router.patch(
   "/:id",
   upload.single("image"), 
   updateProduct
