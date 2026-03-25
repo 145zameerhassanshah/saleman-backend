@@ -9,6 +9,7 @@ const ORDER_STATUS = {
   PARTIAL: "partial",
   PAID: "paid",
   POSTED:"posted",
+  REJECTED:"rejected",
   DISPATCHED:"dispatched"
 };
 

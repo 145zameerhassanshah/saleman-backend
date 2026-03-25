@@ -343,6 +343,53 @@ async function update(req, res) {
 
 }
 
+async function updateOrderStatus (req, res){
+  try {
+    const id  = req.params.id;
+    const status = req.body.status;
+
+    const validStatuses = ["approved", "rejected", "pending", "delivered", "cancelled"];
+
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
+      });
+    }
+
+    const order = await orderModel.findById(id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    if (order.status !== "unapproved") {
+      return res.status(400).json({
+        success: false,
+        message: "Only unapproved orders can be updated",
+      });
+    }
+
+    order.status = status;
+    await order.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Order ${status} successfully`,
+      data: order,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error,
+    });
+  }
+};
+
 
 /* ================================
    DELETE INVOICE
@@ -430,5 +477,6 @@ module.exports = {
   store,
   update,
   remove,
+  updateOrderStatus,
   getProductsByCategory
 };
