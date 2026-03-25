@@ -66,135 +66,91 @@ async function getProductsByCategory(req, res) {
 ================================ */
 
 async function store(req, res) {
-    const {
-      dealer_id,
-      order_date,
-      due_date,
-      discount,
-      discount_type,
-      tax,
-      tax_type,
-      notes,
-      businessId,
-      createdBy,
-      deliveryNotes
-    } = req.body;
+  const {
+    dealer_id,
+    order_date,
+    due_date,
+    discount_type,
+    tax_type,
+    notes,
+    businessId,
+    createdBy,
+    deliveryNotes
+  } = req.body;
 
+  // ✅ Parse all numeric fields explicitly
+  const discount = Number(req.body.discount) || 0;
+  const tax = Number(req.body.tax) || 0;
 
-    const items = req.body.items || [];
+  const items = req.body.items || [];
 
-    const orderNumber = await generateOrderNumber();
+  const orderNumber = await generateOrderNumber();
 
+  /* SUBTOTAL */
+  const subtotal = items.reduce((sum, i) => {
+    return sum + (Number(i.quantity) * Number(i.unit_price));
+  }, 0);
 
-    /* SUBTOTAL */
+  /* DISCOUNT */
+  const discountAmount =
+    discount_type === "percent"
+      ? (subtotal * discount) / 100
+      : discount;
 
-    const subtotal = items.reduce((sum, i) => {
-      return sum + (i.quantity * i.unit_price);
-    }, 0);
+  /* TAX */
+  const taxAmount =
+    tax_type === "percent"
+      ? ((subtotal - discountAmount) * tax) / 100
+      : tax;
 
+  const total = subtotal - discountAmount + taxAmount;
 
-    /* DISCOUNT */
+  /* CREATE ORDER */
+  const order = await orderModel.create({
+    order_number: orderNumber,
+    dealer_id,
+    businessId,
+    order_date,
+    createdBy,
+    due_date,
+    subtotal,
+    discount: discountAmount,
+    discount_type,
+    tax: taxAmount,
+    tax_type,
+    total,
+    notes,
+    deliveryNotes
+  });
 
-    const discountAmount =
-      discount_type === "percent"
-        ? (subtotal * discount) / 100
-        : discount || 0;
+  if (req.user.role === "admin") {
+    order.status = "approved";
+    await order.save();
+  }
 
+  /* CREATE ITEMS */
+  for (const item of items) {
+    if (!item.product_id || !item.quantity || !item.unit_price) continue;
 
-    /* TAX */
-
-    const taxAmount =
-      tax_type === "percent"
-        ? ((subtotal - discountAmount) * tax) / 100
-        : tax || 0;
-
-
-    const total = subtotal - discountAmount + taxAmount;
-
-
-    /* CREATE ORDER */
-
-    const order = await orderModel.create({
-
-      order_number: orderNumber,
-      dealer_id,
-      businessId,
-      order_date,
-      createdBy,
-      due_date,
-      subtotal,
-      discount: discountAmount,
-      discount_type,
-      tax: taxAmount,
-      tax_type,
-      total,
-      notes,
-      deliveryNotes
+    await orderItemModel.create({
+      order_id: order._id,
+      item_name: item.item_name,
+      product_id: item.product_id,
+      quantity: Number(item.quantity),
+      unit_price: Number(item.unit_price),
+      discount_percent: Number(item.discount_percent) || 0,
+      total:
+        Number(item.quantity) *
+        Number(item.unit_price) *
+        (1 - (Number(item.discount_percent) || 0) / 100)
     });
+  }
 
-    if(req.user.role==="admin") {
-      order.status="approved"
-      await order.save();
-    };
-
-
-
-
-    /* CREATE ITEMS */
-
-    for (const item of items) {
-
-      if (!item.product_id || !item.quantity || !item.unit_price) continue;
-
-      await orderItemModel.create({
-
-        order_id: order._id,
-        item_name: item.item_name,
-        product_id: item.product_id,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        discount_percent: item.discount_percent || 0,
-
-        total:
-          item.quantity *
-          item.unit_price *
-          (1 - (item.discount_percent || 0) / 100)
-
-      });
-
-    }
-
-
-    /* ADVANCE PAYMENT */
-
-    // if (advance_paid && advance_paid > 0) {
-
-    //   await paymentModel.create({
-
-    //     order_id: order._id,
-    //     payment_date: order_date,
-    //     amount: advance_paid,
-    //     payment_method: "Advance"
-
-    //   });
-
-    // }
-
-
-    /* UPDATE PAYMENT SUMMARY */
-
-    // await order.updatePaymentSummary();
-
-
-    return res.status(201).json({
-
-      message: "Order created successfully",
-      order
-
-    })
-
+  return res.status(201).json({
+    message: "Order created successfully",
+    order
+  });
 }
-
 
 /* ================================
    UPDATE INVOICE
@@ -210,6 +166,7 @@ async function update(req, res) {
 
     if (!order) {
       return res.status(404).json({
+        success:false,
         message: "Order not found"
       });
     }
@@ -217,7 +174,6 @@ async function update(req, res) {
 
     const {
       dealer_id,
-      currency_id,
       order_date,
       due_date,
       discount,
@@ -253,7 +209,7 @@ async function update(req, res) {
     await order.updateOne({
 
       dealer_id,
-      currency_id,
+      updatedBy:req.user.id,
       order_date,
       due_date,
       subtotal,
@@ -269,7 +225,7 @@ async function update(req, res) {
 
     /* DELETE OLD ITEMS */
 
-    await orderItemModel.deleteMany({ order_id: id });
+    // await orderItemModel.deleteMany({ order_id: id });
 
 
     /* CREATE NEW ITEMS */
@@ -283,6 +239,7 @@ async function update(req, res) {
         order_id: id,
         product_id: item.product_id,
         quantity: item.quantity,
+        item_name:item.item_name,
         unit_price: item.unit_price,
         discount_percent: item.discount_percent || 0,
 
@@ -295,47 +252,15 @@ async function update(req, res) {
 
     }
 
-
-    /* HANDLE ADVANCE PAYMENT */
-
-    // if (advance_paid && advance_paid > 0) {
-
-    //   const advancePayment = await paymentModel.findOne({
-    //     order_id: id,
-    //     payment_method: "Advance"
-    //   });
-
-    //   if (advancePayment) {
-
-    //     advancePayment.amount = advance_paid;
-    //     advancePayment.payment_date = order_date;
-
-    //     await advancePayment.save();
-
-    //   } else {
-
-    //     await paymentModel.create({
-    //       order_id: id,
-    //       payment_date: order_date,
-    //       amount: advance_paid,
-    //       payment_method: "Advance"
-    //     });
-
-    //   }
-
-    // }
-
-
-    // await order.updatePaymentSummary();
-
-
     return res.status(200).json({
+      success:true,
       message: "Order updated successfully"
     });
 
   } catch (error) {
 
     return res.status(500).json({
+      success:true,
       message: "Something went wrong"
     });
 
@@ -413,6 +338,7 @@ async function remove(req, res) {
 
     // if (payments.length > 0) {
     //   return res.status(400).json({
+    //     success:false,
     //     message: "Order has payments and cannot be deleted"
     //   });
     // }
@@ -421,12 +347,14 @@ async function remove(req, res) {
     await orderItemModel.deleteMany({ order_id: id });
 
     return res.status(200).json({
+      success:true,
       message: "Oder deleted successfully"
     });
 
   } catch (error) {
 
     return res.status(500).json({
+      success:false,
       message: "Something went wrong"
     });
 

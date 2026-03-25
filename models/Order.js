@@ -88,6 +88,12 @@ const orderSchema = new mongoose.Schema({
     default: 0
   },
 
+  updatedBy:{
+     type:mongoose.Schema.Types.ObjectId,
+    ref:"UserModel",
+    default:null
+  },
+
   status: {
     type: String,
     enum: Object.values(ORDER_STATUS),
