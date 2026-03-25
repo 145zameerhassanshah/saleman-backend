@@ -471,6 +471,21 @@ async function generateOrderNumber() {
   return `ORD-${serialFormatted}-${formattedDate}`;
 }
 
+async function getOrderById(req, res) {
+  try {
+    const order = await orderModel
+      .findById(req.params.id)
+      .populate("dealer_id createdBy")
+
+    if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+
+    const items = await orderItemModel.find({ order_id: req.params.id }).populate("product_id");
+
+    return res.status(200).json({ success: true, order, items });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Something went wrong" });
+  }
+}
 
 module.exports = {
   showAll,
@@ -478,5 +493,6 @@ module.exports = {
   update,
   remove,
   updateOrderStatus,
-  getProductsByCategory
+  getProductsByCategory,
+  getOrderById
 };

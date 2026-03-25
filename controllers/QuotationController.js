@@ -61,7 +61,7 @@ async function create(req, res) {
   try {
     const { businessId } = req.params;
 
-    const userId = req.user._id;
+    const userId = req.user.id;
     const role = req.user.role?.toLowerCase(); 
 
     const {
