@@ -38,12 +38,29 @@ async function getProductsByCategory(req, res) {
 async function showAll(req, res) {
   try {
     const { businessId } = req.params;
+    const user=req.user;
 
+     let filter = {
+      businessId: businessId
+    };
+
+    // ✅ ROLE BASED FILTERING
+    if (user.role === "salesman") {
+      filter.created_by = user.id;
+    }
+
+    if (user.role === "dispatcher") {
+      filter.status = "approved"; // 👈 ONLY APPROVED
+    }
+
+    if (user.role === "accountant") {
+      filter.status = "dispatched"; // 👈 ONLY DISPATCHED
+    }
     const quotations = await quotationModel
-      .find({ businessId })
+      .find(filter)
       .populate("dealer_id")
-      .populate("created_by", "name email")
-      .populate("updated_by", "name email")
+      .populate("created_by", "name email user_type")
+      .populate("updated_by", "name email user_type")
       .sort({ createdAt: -1 });
 
     return res.status(200).json({ quotations });
@@ -151,7 +168,6 @@ async function create(req, res) {
       notes,
       deliveryNotes,
       created_by: userId,
-      updated_by: userId, 
       status,
     });
 
@@ -177,11 +193,10 @@ async function create(req, res) {
 ================================ */
 
 async function update(req, res) {
-  try {
     const { id } = req.params;
 
-    const userId = req.user._id;
-    const role = req.user.user_type?.toLowerCase();
+    const userId = req.user.id;
+    const role = req.user.role?.toLowerCase();
 
     const quotation = await quotationModel.findById(id);
 
@@ -194,12 +209,14 @@ async function update(req, res) {
 
       if (quotation.status === "approved") {
         return res.status(403).json({
+          success:false,
           message: "Cannot update approved quotation",
         });
       }
 
       if (quotation.created_by.toString() !== userId.toString()) {
         return res.status(403).json({
+          success:false,
           message: "Not your quotation",
         });
       }
@@ -214,7 +231,7 @@ async function update(req, res) {
       const product = await productModel.findById(item.product_id);
 
       if (!product) {
-        return res.status(404).json({ message: "Product not found" });
+        return res.status(404).json({success:false, message: "Product not found" });
       }
 
       const gross = item.quantity * item.unit_price;
@@ -246,11 +263,7 @@ async function update(req, res) {
       });
     }
 
-    return res.json({ message: "Quotation updated successfully" });
-
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
-  }
+    return res.json({success:true, message: "Quotation updated successfully" });
 }
 
 /* ================================
@@ -259,7 +272,7 @@ async function update(req, res) {
 
 async function remove(req, res) {
   try {
-    if (req.user.user_type?.toLowerCase() !== "admin") {
+    if (req.user.role?.toLowerCase() !== "admin") {
       return res.status(403).json({
         message: "Only admin can delete quotation",
       });
@@ -277,6 +290,69 @@ async function remove(req, res) {
   }
 }
 
+async function getQuotationById(req, res) {
+  try {
+    const quotation = await quotationModel
+      .findById(req.params.id)
+      .populate("dealer_id created_by");
+
+    if (!quotation) return res.status(404).json({ success: false, message: "Quotation not found" });
+
+    const items = await quotationItem
+      .find({ quotation_id: req.params.id })
+      .populate("product_id");
+
+    return res.status(200).json({ success: true, quotation, items });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Something went wrong" });
+  }
+}
+
+async function updateQuotationStatus (req, res){
+  try{
+    const id  = req.params.id;
+    const status = req.body.status;
+
+    const validStatuses = ["approved", "rejected", "pending"];
+
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
+      });
+    }
+
+    const quotation = await quotationModel.findById(id);
+
+    if (!quotation) {
+      return res.status(404).json({
+        success: false,
+        message: "Quoatation not found",
+      });
+    }
+
+    if (quotation.status !== "pending") {
+      return res.status(400).json({
+        success: false,
+        message: "Only unapproved orders can be updated",
+      });
+    }
+
+    quotation.status = status;
+    await quotation?.save();
+
+    return res.status(200).json({
+      success: true,
+      message: `Quotation ${status} successfully`,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error,
+    });
+  }
+};
 /* ================================
    GENERATE NUMBER
 ================================ */
@@ -308,6 +384,8 @@ module.exports = {
   update,
   remove,
   getProductsByCategory,
+  updateQuotationStatus,
+  getQuotationById
 };
 
 

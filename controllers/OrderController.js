@@ -13,21 +13,37 @@ const {
 
 async function showAll(req, res) {
   try {
-
-    const orders = await orderModel
-      .find({businessId:req.params.id})
-      .populate("dealer_id createdBy")
-      .sort({ createdAt: -1 });
-
-    return res.status(200).json({ orders });
-
-  } catch (error) {
-
-    return res.status(500).json({
-      message: "Something went wrong"
-    });
-
-  }
+      const { id } = req.params;
+      const user=req.user;
+  
+       let filter = {
+        businessId: id
+      };
+  
+      // ✅ ROLE BASED FILTERING
+      if (user.role === "salesman") {
+        filter.createdBy = user.id;
+      }
+  
+      if (user.role === "dispatcher") {
+        filter.status = "approved"; // 👈 ONLY APPROVED
+      }
+  
+      if (user.role === "accountant") {
+        filter.status = "dispatched"; // 👈 ONLY DISPATCHED
+      }
+      const orders = await orderModel
+        .find(filter)
+        .populate("dealer_id")
+        .populate("createdBy", "name email user_type")
+        .populate("updatedBy", "name email user_type")
+        .sort({ createdAt: -1 });
+  
+      return res.status(200).json({ orders });
+  
+    } catch (error) {
+      return res.status(500).json({ message: error.message });
+    }
 }
 
 
@@ -225,7 +241,7 @@ async function update(req, res) {
 
     /* DELETE OLD ITEMS */
 
-    // await orderItemModel.deleteMany({ order_id: id });
+    await orderItemModel.deleteMany({ order_id: id });
 
 
     /* CREATE NEW ITEMS */
