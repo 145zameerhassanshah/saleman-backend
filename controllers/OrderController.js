@@ -107,17 +107,21 @@ async function store(req, res) {
     return sum + (Number(i.quantity) * Number(i.unit_price));
   }, 0);
 
-  /* DISCOUNT */
-  const discountAmount =
-    discount_type === "percent"
-      ? (subtotal * discount) / 100
-      : discount;
+/* DISCOUNT */
+const discountAmount =
+  discount_type === "percent"
+    ? (subtotal * discount) / 100
+    : discount_type === "fixed"
+    ? discount
+    : 0;
 
-  /* TAX */
-  const taxAmount =
-    tax_type === "percent"
-      ? ((subtotal - discountAmount) * tax) / 100
-      : tax;
+/* TAX */
+const taxAmount =
+  tax_type === "percent"
+    ? ((subtotal - discountAmount) * tax) / 100
+    : tax_type === "fixed"
+    ? tax
+    : 0;
 
   const total = subtotal - discountAmount + taxAmount;
 
@@ -207,17 +211,21 @@ async function update(req, res) {
     }, 0);
 
 
-    const discountAmount =
-      discount_type === "percent"
-        ? (subtotal * discount) / 100
-        : discount || 0;
+/* DISCOUNT */
+const discountAmount =
+  discount_type === "percent"
+    ? (subtotal * discount) / 100
+    : discount_type === "fixed"
+    ? discount
+    : 0;
 
-
-    const taxAmount =
-      tax_type === "percent"
-        ? ((subtotal - discountAmount) * tax) / 100
-        : tax || 0;
-
+/* TAX */
+const taxAmount =
+  tax_type === "percent"
+    ? ((subtotal - discountAmount) * tax) / 100
+    : tax_type === "fixed"
+    ? tax
+    : 0;
 
     const total = subtotal - discountAmount + taxAmount;
 
@@ -415,19 +423,76 @@ async function generateOrderNumber() {
   return `ORD-${serialFormatted}-${formattedDate}`;
 }
 
+// async function getOrderById(req, res) {
+//   try {
+//     const order = await orderModel
+//       .findById(req.params.id)
+//       .populate("dealer_id createdBy")
+
+//     if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+
+//     const items = await orderItemModel.find({ order_id: req.params.id }).populate("product_id");
+
+//     return res.status(200).json({ success: true, order, items });
+//   } catch (error) {
+//     return res.status(500).json({ success: false, message: "Something went wrong" });
+//   }
+// }
 async function getOrderById(req, res) {
   try {
+    const id = req.params.id;
+
+    /* ================= ORDER ================= */
     const order = await orderModel
-      .findById(req.params.id)
-      .populate("dealer_id createdBy")
+      .findById(id)
+      .populate("dealer_id createdBy");
 
-    if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found"
+      });
+    }
 
-    const items = await orderItemModel.find({ order_id: req.params.id }).populate("product_id");
+    /* ================= ITEMS ================= */
+    const items = await orderItemModel
+      .find({ order_id: id })
+      .populate({
+        path: "product_id",
+        populate: {
+          path: "category_id",
+          select: "_id name"
+        }
+      });
 
-    return res.status(200).json({ success: true, order, items });
+    /* ================= FORMAT ITEMS ================= */
+    const formattedItems = items.map((item) => ({
+      _id: item._id,
+
+      category_id: item.product_id?.category_id?._id || "",
+
+      product_id: item.product_id?._id || "",
+      item_name: item.item_name,
+
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      discount_percent: item.discount_percent,
+
+      total: item.total
+    }));
+
+    /* ================= RESPONSE ================= */
+    return res.status(200).json({
+      success: true,
+      order,
+      items: formattedItems
+    });
+
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Something went wrong" });
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong"
+    });
   }
 }
 

@@ -10,12 +10,17 @@ const industrySchema=new mongoose.Schema({
         type:String,
         default:null,
     },
+
     businessName:{
         type:String,
         required:true,
         unique:true
     },
-
+bussinesEmail:{
+        type:String,
+        required:true,
+        unique:true
+    },
     registrationNo:{
         type:String,
         required:true,
