@@ -93,7 +93,6 @@ async function store(req, res) {
     createdBy,
     deliveryNotes
   } = req.body;
-
   // ✅ Parse all numeric fields explicitly
   const discount = Number(req.body.discount) || 0;
   const tax = Number(req.body.tax) || 0;
@@ -104,22 +103,29 @@ async function store(req, res) {
 
   /* SUBTOTAL */
   const subtotal = items.reduce((sum, i) => {
-    return sum + (Number(i.quantity) * Number(i.unit_price));
-  }, 0);
+  const qty = Number(i.quantity) || 0;
+  const price = Number(i.unit_price) || 0;
+  const discountPercent = Number(i.discount_percent) || 0;
 
+  const subt = qty * price;
+
+  const discountAmount = (subt * discountPercent) / 100;
+
+  return sum + (subt - discountAmount);
+}, 0);
   /* DISCOUNT */
   const discountAmount =
     discount_type === "percent"
-      ? (subtotal * discount) / 100
+      ? (Number(subtotal) * Number(discount) )/ 100
       : discount;
-
   /* TAX */
   const taxAmount =
     tax_type === "percent"
-      ? ((subtotal - discountAmount) * tax) / 100
+      ? ((Number(subtotal) - Number(discountAmount)) * Number(tax)) / 100
       : tax;
 
-  const total = subtotal - discountAmount + taxAmount;
+
+  const total = Number(subtotal) - Number(discountAmount) + Number(taxAmount);
 
   /* CREATE ORDER */
   const order = await orderModel.create({
