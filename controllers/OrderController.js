@@ -30,7 +30,7 @@ async function showAll(req, res) {
       }
   
       if (user.role === "accountant") {
-        filter.status = "dispatched"; // 👈 ONLY DISPATCHED
+        filter.status =  { $in: ["dispatched", "partial","posted"] };
       }
       const orders = await orderModel
         .find(filter)
@@ -187,6 +187,14 @@ async function update(req, res) {
       });
     }
 
+    // update order
+if (req.user.role === "dispatcher" || req.user.role==="accountant") {
+  order.status = req.body.status;
+  order.deliveryNotes=req.body.deliveryNotes;
+  order.updatedBy=req.user.id;
+  await order.save();
+  return res.json({ success: true });
+}
 
     const {
       dealer_id,
@@ -289,7 +297,7 @@ async function updateOrderStatus (req, res){
     const id  = req.params.id;
     const status = req.body.status;
 
-    const validStatuses = ["approved", "rejected", "pending", "delivered", "cancelled"];
+    const validStatuses = ["approved", "rejected", "pending", "posted"];
 
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
