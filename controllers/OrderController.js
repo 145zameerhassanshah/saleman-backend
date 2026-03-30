@@ -6,7 +6,7 @@ const {
   productModel
 } = require("../models/exporter");
 
-
+const PDFDocument = require("pdfkit");
 /* ================================
    INVOICE LIST
 ================================ */
@@ -26,11 +26,11 @@ async function showAll(req, res) {
       }
   
       if (user.role === "dispatcher") {
-        filter.status = "approved"; // 👈 ONLY APPROVED
+        filter.status = { $in: ["dispatched", "partial"] }; 
       }
   
       if (user.role === "accountant") {
-        filter.status = "dispatched"; // 👈 ONLY DISPATCHED
+        filter.status =  { $in: ["dispatched", "partial","posted"] };
       }
       const orders = await orderModel
         .find(filter)
@@ -93,7 +93,6 @@ async function store(req, res) {
     createdBy,
     deliveryNotes
   } = req.body;
-
   // ✅ Parse all numeric fields explicitly
   const discount = Number(req.body.discount) || 0;
   const tax = Number(req.body.tax) || 0;
@@ -104,26 +103,29 @@ async function store(req, res) {
 
   /* SUBTOTAL */
   const subtotal = items.reduce((sum, i) => {
-    return sum + (Number(i.quantity) * Number(i.unit_price));
-  }, 0);
+  const qty = Number(i.quantity) || 0;
+  const price = Number(i.unit_price) || 0;
+  const discountPercent = Number(i.discount_percent) || 0;
 
-/* DISCOUNT */
-const discountAmount =
-  discount_type === "percent"
-    ? (subtotal * discount) / 100
-    : discount_type === "fixed"
-    ? discount
-    : 0;
+  const subt = qty * price;
 
-/* TAX */
-const taxAmount =
-  tax_type === "percent"
-    ? ((subtotal - discountAmount) * tax) / 100
-    : tax_type === "fixed"
-    ? tax
-    : 0;
+  const discountAmount = (subt * discountPercent) / 100;
 
-  const total = subtotal - discountAmount + taxAmount;
+  return sum + (subt - discountAmount);
+}, 0);
+  /* DISCOUNT */
+  const discountAmount =
+    discount_type === "percent"
+      ? (Number(subtotal) * Number(discount) )/ 100
+      : discount;
+  /* TAX */
+  const taxAmount =
+    tax_type === "percent"
+      ? ((Number(subtotal) - Number(discountAmount)) * Number(tax)) / 100
+      : tax;
+
+
+  const total = Number(subtotal) - Number(discountAmount) + Number(taxAmount);
 
   /* CREATE ORDER */
   const order = await orderModel.create({
@@ -191,6 +193,14 @@ async function update(req, res) {
       });
     }
 
+    // update order
+if (req.user.role === "dispatcher" || req.user.role==="accountant") {
+  order.status = req.body.status;
+  order.deliveryNotes=req.body.deliveryNotes;
+  order.updatedBy=req.user.id;
+  await order.save();
+  return res.json({ success: true });
+}
 
     const {
       dealer_id,
@@ -297,7 +307,7 @@ async function updateOrderStatus (req, res){
     const id  = req.params.id;
     const status = req.body.status;
 
-    const validStatuses = ["approved", "rejected", "pending", "delivered", "cancelled"];
+    const validStatuses = ["approved", "rejected", "pending", "posted"];
 
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
@@ -438,6 +448,59 @@ async function generateOrderNumber() {
 //     return res.status(500).json({ success: false, message: "Something went wrong" });
 //   }
 // }
+const downloadPDF = async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const order = await orderModel
+      .findById(id)
+      .populate("dealer_id createdBy");
+
+    const items = await orderItemModel.find({ order_id: id });
+
+    if (!order) return res.status(404).send("Order not found");
+
+    const doc = new PDFDocument({ margin: 40 });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=order-${order.order_number}.pdf`
+    );
+
+    doc.pipe(res);
+
+    // HEADER
+    doc.fontSize(18).text("Order Invoice", { align: "center" });
+    doc.moveDown();
+
+    doc.text(`Order #: ${order.order_number}`);
+    doc.text(`Dealer: ${order.dealer_id?.name || "-"}`);
+    doc.text(`Created By: ${order.createdBy?.name || "-"}`);
+    doc.text(`Date: ${new Date(order.order_date).toLocaleDateString()}`);
+
+    doc.moveDown();
+
+    // ITEMS
+    items.forEach((item, i) => {
+      doc.text(
+        `${i + 1}. ${item.item_name} | Qty: ${item.quantity} | Price: ${
+          item.unit_price
+        } | Total: ${item.total}`
+      );
+    });
+
+    doc.moveDown();
+
+    // TOTAL
+    doc.font("Helvetica-Bold").text(`Total: ${order.total}`);
+
+    doc.end();
+  } catch (err) {
+    console.log(err);
+    res.status(500).send("Error generating PDF");
+  }
+};
 async function getOrderById(req, res) {
   try {
     const id = req.params.id;
@@ -503,5 +566,6 @@ module.exports = {
   remove,
   updateOrderStatus,
   getProductsByCategory,
-  getOrderById
+  getOrderById,
+  downloadPDF
 };
