@@ -6,7 +6,6 @@ const { sendEmail } = require("../utils/email");
 async function createUser(req, res) {
   try {
     const { email, phone_number, whatsapp_number } = req.body;
-
     /* ================= EMAIL CHECK ================= */
 
     const emailExist = await userModel.findOne({ email });
