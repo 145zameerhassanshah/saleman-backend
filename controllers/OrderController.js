@@ -6,7 +6,7 @@ const {
   productModel
 } = require("../models/exporter");
 
-const PDFDocument = require("pdfkit");
+const puppeteer = require("puppeteer");
 /* ================================
    INVOICE LIST
 ================================ */
@@ -448,57 +448,52 @@ async function generateOrderNumber() {
 //     return res.status(500).json({ success: false, message: "Something went wrong" });
 //   }
 // }
+
+
 const downloadPDF = async (req, res) => {
   try {
     const id = req.params.id;
 
-    const order = await orderModel
-      .findById(id)
-      .populate("dealer_id createdBy");
-
-    const items = await orderItemModel.find({ order_id: id });
-
-    if (!order) return res.status(404).send("Order not found");
-
-    const doc = new PDFDocument({ margin: 40 });
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader(
-      "Content-Disposition",
-      `attachment; filename=order-${order.order_number}.pdf`
-    );
-
-    doc.pipe(res);
-
-    // HEADER
-    doc.fontSize(18).text("Order Invoice", { align: "center" });
-    doc.moveDown();
-
-    doc.text(`Order #: ${order.order_number}`);
-    doc.text(`Dealer: ${order.dealer_id?.name || "-"}`);
-    doc.text(`Created By: ${order.createdBy?.name || "-"}`);
-    doc.text(`Date: ${new Date(order.order_date).toLocaleDateString()}`);
-
-    doc.moveDown();
-
-    // ITEMS
-    items.forEach((item, i) => {
-      doc.text(
-        `${i + 1}. ${item.item_name} | Qty: ${item.quantity} | Price: ${
-          item.unit_price
-        } | Total: ${item.total}`
-      );
+    const browser = await puppeteer.launch({
+      headless: "new",
+      args: ["--no-sandbox", "--disable-setuid-sandbox"],
     });
 
-    doc.moveDown();
+    const page = await browser.newPage();
 
-    // TOTAL
-    doc.font("Helvetica-Bold").text(`Total: ${order.total}`);
+    // 🔥 LOGIN SESSION PASS
+    if (req.headers.cookie) {
+      await page.setExtraHTTPHeaders({
+        Cookie: req.headers.cookie,
+      });
+    }
 
-    doc.end();
+    // 🔥 YOUR PRINT PAGE
+    await page.goto(
+      `http://localhost:3000/orders/print/${id}`,
+      { waitUntil: "networkidle0" }
+    );
+
+    // 🔥 WAIT FOR TEMPLATE LOAD
+    await page.waitForSelector("#invoice");
+
+    const pdf = await page.pdf({
+      format: "A4",
+      printBackground: true,
+    });
+
+    await browser.close();
+
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename=order-${id}.pdf`,
+    });
+
+    res.send(pdf);
+
   } catch (err) {
     console.log(err);
-    res.status(500).send("Error generating PDF");
+    res.status(500).send("PDF error");
   }
 };
 async function getOrderById(req, res) {
