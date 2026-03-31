@@ -10,7 +10,48 @@ const puppeteer = require("puppeteer");
 /* ================================
    INVOICE LIST
 ================================ */
+async function getDashboardStats(req, res) {
+  try {
+    const user = req.user;
+    const businessId = req.params.id;
 
+    let filter = { businessId };
+
+    // 🔥 role-based same logic
+    if (user.role === "salesman") {
+      filter.createdBy = user.id;
+    }
+
+    if (user.role === "dispatcher") {
+      filter.status = { $in: ["dispatched", "partial"] };
+    }
+
+    if (user.role === "accountant") {
+      filter.status = { $in: ["dispatched", "partial", "posted"] };
+    }
+
+    const totalOrders = await orderModel.countDocuments({ businessId });
+
+    const activeOrders = await orderModel.countDocuments({
+      businessId,
+      status: { $in: ["approved", "active", "partial"] },
+    });
+
+    const pendingOrders = await orderModel.countDocuments({
+      businessId,
+      status: "unapproved",
+    });
+
+    return res.json({
+      totalOrders,
+      activeOrders,
+      pendingOrders,
+    });
+
+  } catch (error) {
+    return res.status(500).json({ message: error.message });
+  }
+}
 async function showAll(req, res) {
   try {
       const { id } = req.params;
@@ -450,50 +491,85 @@ async function generateOrderNumber() {
 // }
 
 
+
 const downloadPDF = async (req, res) => {
   try {
     const id = req.params.id;
 
+    console.log("📄 PDF REQUEST ID:", id);
+
+    const url = `${process.env.CLIENT_URL}/orders/print/${id}`;
+    console.log("🌐 OPENING URL:", url);
+
     const browser = await puppeteer.launch({
-      headless: "new",
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      headless: false, // 🔥 DEBUG MODE (browser dikhega)
+      args: ["--no-sandbox"],
     });
 
     const page = await browser.newPage();
 
-    // 🔥 LOGIN SESSION PASS
+    // ✅ LOG FRONTEND CONSOLE INSIDE BACKEND
+    page.on("console", (msg) => {
+      console.log("🧠 PAGE LOG:", msg.text());
+    });
+
+    // ✅ LOG ERRORS
+    page.on("pageerror", (err) => {
+      console.log("❌ PAGE ERROR:", err.message);
+    });
+
+    // ✅ PASS COOKIES
     if (req.headers.cookie) {
+      console.log("🍪 COOKIES PASSED");
       await page.setExtraHTTPHeaders({
         Cookie: req.headers.cookie,
       });
+    } else {
+      console.log("⚠️ NO COOKIES FOUND");
     }
 
-    // 🔥 YOUR PRINT PAGE
-    await page.goto(
-      `http://localhost:3000/orders/print/${id}`,
-      { waitUntil: "networkidle0" }
-    );
-
-    // 🔥 WAIT FOR TEMPLATE LOAD
-    await page.waitForSelector("#invoice");
-
-    const pdf = await page.pdf({
-      format: "A4",
-      printBackground: true,
+    // ✅ OPEN PAGE
+    await page.goto(url, {
+      waitUntil: "networkidle0",
+      timeout: 60000,
     });
 
-    await browser.close();
+    console.log("✅ PAGE LOADED");
 
-    res.set({
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename=order-${id}.pdf`,
+    // ✅ SCREENSHOT (MOST IMPORTANT 🔥)
+    await page.screenshot({ path: "debug.png", fullPage: true });
+    console.log("📸 Screenshot saved as debug.png");
+
+    // ✅ WAIT FOR INVOICE
+    await page.waitForSelector("#invoice", { timeout: 10000 });
+    console.log("✅ #invoice FOUND");
+
+    // ✅ GENERATE PDF
+const pdf = await page.pdf({
+  format: "A4",
+  printBackground: true,
+  preferCSSPageSize: true,
+});
+
+console.log("✅ PDF GENERATED");
+
+await browser.close();
+
+res.set({
+  "Content-Type": "application/pdf",
+  "Content-Disposition": `attachment; filename=order-${id}.pdf`,
+});
+
+return res.send(pdf);
+
+  } catch (error) {
+    console.log("❌ PDF ERROR:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to generate PDF",
+      error: error.message,
     });
-
-    res.send(pdf);
-
-  } catch (err) {
-    console.log(err);
-    res.status(500).send("PDF error");
   }
 };
 async function getOrderById(req, res) {
@@ -501,11 +577,11 @@ async function getOrderById(req, res) {
     const id = req.params.id;
 
     /* ================= ORDER ================= */
-    const order = await orderModel
-      .findById(id)
-      .populate("dealer_id createdBy");
-
-    if (!order) {
+const order = await orderModel
+  .findById(id)
+  .populate("dealer_id createdBy")
+  .populate("businessId");
+      if (!order) {
       return res.status(404).json({
         success: false,
         message: "Order not found"
@@ -524,22 +600,23 @@ async function getOrderById(req, res) {
       });
 
     /* ================= FORMAT ITEMS ================= */
-    const formattedItems = items.map((item) => ({
-      _id: item._id,
+const formattedItems = items.map((item) => ({
+  _id: item._id,
 
-      category_id: item.product_id?.category_id?._id || "",
+  category_id: item.product_id?.category_id?._id || "",
 
-      product_id: item.product_id?._id || "",
-      item_name: item.item_name,
+  product_id: item.product_id || null, // ✅ FIXED
 
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-      discount_percent: item.discount_percent,
+  product_name: item.product_id?.name || "",
 
-      total: item.total
-    }));
+  item_name: item.item_name,
 
-    /* ================= RESPONSE ================= */
+  quantity: item.quantity,
+  unit_price: item.unit_price,
+  discount_percent: item.discount_percent,
+
+  total: item.total
+}));    /* ================= RESPONSE ================= */
     return res.status(200).json({
       success: true,
       order,
@@ -562,5 +639,6 @@ module.exports = {
   updateOrderStatus,
   getProductsByCategory,
   getOrderById,
-  downloadPDF
+  downloadPDF,
+  getDashboardStats
 };
