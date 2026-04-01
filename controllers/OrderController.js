@@ -495,76 +495,50 @@ async function generateOrderNumber() {
 const downloadPDF = async (req, res) => {
   try {
     const id = req.params.id;
-
-    console.log("📄 PDF REQUEST ID:", id);
-
-    const url = `${process.env.CLIENT_URL}/orders/print/${id}`;
-    console.log("🌐 OPENING URL:", url);
+    const url = `${process.env.CLIENT_URL}/order/print/${id}`;
 
     const browser = await puppeteer.launch({
-      headless: false, // 🔥 DEBUG MODE (browser dikhega)
+      headless: true,
       args: ["--no-sandbox"],
     });
 
     const page = await browser.newPage();
 
-    // ✅ LOG FRONTEND CONSOLE INSIDE BACKEND
-    page.on("console", (msg) => {
-      console.log("🧠 PAGE LOG:", msg.text());
-    });
-
-    // ✅ LOG ERRORS
-    page.on("pageerror", (err) => {
-      console.log("❌ PAGE ERROR:", err.message);
-    });
-
-    // ✅ PASS COOKIES
+    // Pass cookies if present
     if (req.headers.cookie) {
-      console.log("🍪 COOKIES PASSED");
-      await page.setExtraHTTPHeaders({
-        Cookie: req.headers.cookie,
-      });
-    } else {
-      console.log("⚠️ NO COOKIES FOUND");
+      await page.setExtraHTTPHeaders({ Cookie: req.headers.cookie });
     }
 
-    // ✅ OPEN PAGE
-    await page.goto(url, {
-      waitUntil: "networkidle0",
-      timeout: 60000,
+    await page.goto(url, { waitUntil: "networkidle0", timeout: 60000 });
+
+    // Wait for invoice element
+    await page.waitForSelector("#invoice", { timeout: 10000 });
+
+    // Get full page height
+    const bodyHandle = await page.$("body");
+    const { height } = await bodyHandle.boundingBox();
+    await bodyHandle.dispose();
+
+    // Generate single-page PDF by setting height dynamically
+    const pdf = await page.pdf({
+      printBackground: true,
+      width: "210mm", // A4 width
+      height: `${height}px`, // dynamic height to fit content
+      margin: { top: "10mm", bottom: "10mm" },
+      pageRanges: "1", // only 1 page
     });
 
-    console.log("✅ PAGE LOADED");
+    await browser.close();
 
-    // ✅ SCREENSHOT (MOST IMPORTANT 🔥)
-    await page.screenshot({ path: "debug.png", fullPage: true });
-    console.log("📸 Screenshot saved as debug.png");
+    res.set({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `attachment; filename=order-${id}.pdf`,
+    });
 
-    // ✅ WAIT FOR INVOICE
-    await page.waitForSelector("#invoice", { timeout: 10000 });
-    console.log("✅ #invoice FOUND");
-
-    // ✅ GENERATE PDF
-const pdf = await page.pdf({
-  format: "A4",
-  printBackground: true,
-  preferCSSPageSize: true,
-});
-
-console.log("✅ PDF GENERATED");
-
-await browser.close();
-
-res.set({
-  "Content-Type": "application/pdf",
-  "Content-Disposition": `attachment; filename=order-${id}.pdf`,
-});
-
-return res.send(pdf);
+    return res.send(pdf);
 
   } catch (error) {
     console.log("❌ PDF ERROR:", error);
-
     return res.status(500).json({
       success: false,
       message: "Failed to generate PDF",

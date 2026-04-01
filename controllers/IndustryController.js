@@ -19,21 +19,29 @@ async function getAllIndustries(req, res) {
 
 async function createIndustry(req, res) {
   try {
-    const { businessName, registrationNo } = req.body;
+    const { businessName, registrationNo,bussinesEmail } = req.body;
 
     /* ================= CHECK EXIST ================= */
-    const isExist = await industryModel.findOne({
-      $or: [{ businessName }, { registrationNo }],
-    });
+if (await industryModel.findOne({ bussinesEmail })) {
+  return res.status(400).json({
+    success: false,
+    message: "Email already exists",
+  });
+}
 
-    if (isExist) {
-      return res.status(400).json({
-        success: false,
-        message: "Business already exists",
-      });
-    }
+if (await industryModel.findOne({ businessName })) {
+  return res.status(400).json({
+    success: false,
+    message: "Business name already exists",
+  });
+}
 
-    /* ================= HANDLE IMAGE ================= */
+if (await industryModel.findOne({ registrationNo })) {
+  return res.status(400).json({
+    success: false,
+    message: "Registration number already exists",
+  });
+}    /* ================= HANDLE IMAGE ================= */
     let business_logo = null;
 
     if (req.file) {
