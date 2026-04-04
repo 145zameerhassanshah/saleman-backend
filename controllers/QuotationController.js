@@ -225,31 +225,16 @@ async function update(req, res) {
 
     const { items } = req.body;
 
-    let subtotal = 0;
     const preparedItems = [];
 
-    for (const item of items) {
-      const product = await productModel.findById(item.product_id);
+let subtotal = 0;
 
-      if (!product) {
-        return res.status(404).json({success:false, message: "Product not found" });
-      }
+for (const item of items) {
+  const gross = item.quantity * item.unit_price;
+  const discountAmount = (gross * item.discount_percent) / 100;
 
-      const gross = item.quantity * item.unit_price;
-      subtotal += gross;
-
-      preparedItems.push({
-        product_id: item.product_id,
-        category_id: item.category_id,
-        item_name: product.name,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        discount_percent: item.discount_percent,
-        total: gross - (gross * item.discount_percent) / 100,
-      });
-    }
-
-    await quotation.updateOne({
+  subtotal += gross - discountAmount;
+}    await quotation.updateOne({
       ...req.body,
       subtotal,
       updated_by: userId, 

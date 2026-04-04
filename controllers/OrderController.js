@@ -132,7 +132,8 @@ async function store(req, res) {
     notes,
     businessId,
     createdBy,
-    deliveryNotes
+    deliveryNotes,
+    payment_term 
   } = req.body;
   // ✅ Parse all numeric fields explicitly
   const discount = Number(req.body.discount) || 0;
@@ -183,7 +184,8 @@ async function store(req, res) {
     tax_type,
     total,
     notes,
-    deliveryNotes
+    deliveryNotes,
+    payment_term 
   });
 
   if (req.user.role === "admin") {
@@ -251,16 +253,23 @@ if (req.user.role === "dispatcher" || req.user.role==="accountant") {
       discount_type,
       tax,
       tax_type,
-      notes
+      notes,
+      payment_term 
     } = req.body;
 
     const items = req.body.items || [];
 
 
-    const subtotal = items.reduce((sum, i) => {
-      return sum + (i.quantity * i.unit_price);
-    }, 0);
+const subtotal = items.reduce((sum, i) => {
+  const qty = Number(i.quantity) || 0;
+  const price = Number(i.unit_price) || 0;
+  const discountPercent = Number(i.discount_percent) || 0;
 
+  const subt = qty * price;
+  const discountAmount = (subt * discountPercent) / 100;
+
+  return sum + (subt - discountAmount);
+}, 0);
 
 /* DISCOUNT */
 const discountAmount =
@@ -293,7 +302,8 @@ const taxAmount =
       tax: taxAmount,
       tax_type,
       total,
-      notes
+      notes,
+      payment_term
 
     });
 
@@ -520,14 +530,23 @@ const downloadPDF = async (req, res) => {
     await bodyHandle.dispose();
 
     // Generate single-page PDF by setting height dynamically
-    const pdf = await page.pdf({
-      printBackground: true,
-      width: "210mm", // A4 width
-      height: `${height}px`, // dynamic height to fit content
-      margin: { top: "10mm", bottom: "10mm" },
-      pageRanges: "1", // only 1 page
-    });
-
+const pdf = await page.pdf({
+  format: "A4",
+  printBackground: true,
+  margin: {
+    top: "20mm",
+    bottom: "20mm",
+    left: "10mm",
+    right: "10mm",
+  },
+  displayHeaderFooter: true,
+  footerTemplate: `
+    <div style="width:100%; font-size:10px; text-align:center;">
+      Page <span class="pageNumber"></span> of <span class="totalPages"></span>
+    </div>
+  `,
+  headerTemplate: `<div></div>`,
+});
     await browser.close();
 
     res.set({

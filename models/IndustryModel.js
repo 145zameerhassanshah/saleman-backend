@@ -10,7 +10,10 @@ const industrySchema=new mongoose.Schema({
         type:String,
         default:null,
     },
-
+addresLogo:{
+        type:String,
+        default:null,
+    },
     businessName:{
         type:String,
         required:true,
@@ -18,9 +21,7 @@ const industrySchema=new mongoose.Schema({
     },
 bussinesEmail:{
         type:String,
-        required:true,
-        unique:true
-    },
+default:null,    },
     registrationNo:{
         type:String,
         required:true,
@@ -31,7 +32,7 @@ bussinesEmail:{
     },
     address:{
         type:String,
-        required:true,
+        default:null,
     },
     startDate:{
         type:Date,
@@ -41,6 +42,7 @@ bussinesEmail:{
         type:String,
         required:true
     },
+
     createdBy:{
         type:mongoose.Schema.Types.ObjectId,
         ref:"Users",
