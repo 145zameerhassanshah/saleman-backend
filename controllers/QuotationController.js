@@ -6,6 +6,7 @@ const {
   productModel,
   productCategory,
 } = require("../models/exporter");
+const puppeteer = require('puppeteer');
 
 /* ================================
    GET PRODUCTS BY CATEGORY
@@ -290,6 +291,58 @@ async function remove(req, res) {
   }
 }
 
+async function downloadPDF(req, res) {
+  try {
+    const id = req.params.id;
+    const url = `${process.env.CLIENT_URL}/quotation/print/${id}`;
+
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ["--no-sandbox"],
+    });
+
+    const page = await browser.newPage();
+
+    // Pass cookies if present
+    if (req.headers.cookie) {
+      await page.setExtraHTTPHeaders({ Cookie: req.headers.cookie });
+    }
+
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+
+    await page.waitForSelector("#invoice", { timeout: 10000 });
+
+    const bodyHandle = await page.$("body");
+    const { height } = await bodyHandle.boundingBox();
+    await bodyHandle.dispose();
+
+    const pdf = await page.pdf({
+      printBackground: true,
+      width: "210mm", // A4 width
+      height: `${height}px`, // dynamic height to fit content
+      margin: { top: "10mm", bottom: "10mm" },
+      pageRanges: "1", // only 1 page
+    });
+
+    await browser.close();
+
+const quotation = await quotationModel.findById(id);
+
+res.set({
+  "Content-Type": "application/pdf",
+  "Content-Disposition": `attachment; filename=quotation-${quotation.quotation_number}.pdf`,
+});
+    return res.send(pdf);
+  } catch (error) {
+    console.log("❌ PDF ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to generate PDF",
+      error: error.message,
+    });
+  }
+}
+
 async function getQuotationById(req, res) {
   try {
     const quotation = await quotationModel
@@ -357,6 +410,10 @@ async function updateQuotationStatus (req, res){
    GENERATE NUMBER
 ================================ */
 
+
+
+
+
 async function generateQuotationNumber() {
   const last = await quotationModel.findOne().sort({ createdAt: -1 });
 
@@ -385,7 +442,8 @@ module.exports = {
   remove,
   getProductsByCategory,
   updateQuotationStatus,
-  getQuotationById
+  getQuotationById,
+  downloadPDF
 };
 
 
