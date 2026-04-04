@@ -52,6 +52,15 @@ industry: {
     required: true
   },
 
+  territory:{
+    type:String,
+    default:null,
+  },
+
+  designation:{
+    type:String,
+    default:null,
+  },
   password: {
     type: String,
     required: true
