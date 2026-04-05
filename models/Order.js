@@ -25,7 +25,12 @@ const orderSchema = new mongoose.Schema({
     ref: "IndustryModel" ,
     required:true
   },
+payment_term: {
+    type: String,
+    enum: ["advance", "cash", "periodical"],
+    default: "cash"
 
+  },
   dealer_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Dealer",
