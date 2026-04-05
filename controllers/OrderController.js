@@ -67,7 +67,7 @@ async function showAll(req, res) {
       }
   
       if (user.role === "dispatcher") {
-        filter.status = { $in: ["dispatched", "partial"] }; 
+        filter.status = { $in: ["dispatched", "partial","approved"] }; 
       }
   
       if (user.role === "accountant") {
