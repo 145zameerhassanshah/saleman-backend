@@ -14,9 +14,11 @@ const createDealer = async (req, res) => {
       phone_number,
       whatsapp_number,
       company_name,
-      address,
       city,
       business_logo,
+      billing_address,
+shipping_address,
+country,
       is_active,
       userId   
     } = req.body;
@@ -41,6 +43,47 @@ const createDealer = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Company name is required"
+      });
+    }
+if (!city || !city.trim()) {
+      return res.status(400).json({
+        success: false,     
+        message: "City is required"
+      });
+    } 
+    if (!country || !country.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Country is required"
+      });
+    } 
+    if (!whatsapp_number || !whatsapp_number.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "WhatsApp number is required"
+      });
+    } 
+    if (!email || !email.trim()) {
+      return res.status(400).json({
+        success: false,     message: "Email is required"
+      });
+    }
+    if (email && !/^\S+@\S+\.\S+$/.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email format"
+      });
+    } 
+    if(shipping_address && !shipping_address.trim()){
+      return res.status(400).json({
+        success: false,
+        message: "Shipping address cannot be empty"
+      });
+    } 
+if(billing_address && !billing_address.trim()){
+      return res.status(400).json({
+        success: false,
+        message: "Billing address cannot be empty"
       });
     }
 
@@ -68,8 +111,10 @@ const createDealer = async (req, res) => {
       phone_number: phone_number.trim(),
       whatsapp_number,
       company_name: company_name.trim(),
-      address,
       city,
+        billing_address,
+shipping_address,
+      country,
       userId: userId || null,
 business_logo: req.file ? req.file.filename : null,
       is_active: is_active === "true" || is_active === true,
@@ -98,17 +143,18 @@ business_logo: req.file ? req.file.filename : null,
 
 const getDealers = async (req, res) => {
   try {
-
+console.log("REQ USER:", req.user);
     let filter = {
       businessId: req.params.businessId
     };
 
-    if (req.user.user_type === "salesman") {
-      filter.userId = req.user.id;
+    
+    if (req.user.role === "salesman") {
+      filter.userId = new mongoose.Types.ObjectId(req.user.id);
     }
 
     const dealers = await Dealer.find(filter)
-      .populate("userId", "name email"); 
+      .populate("userId", "name email");
 
     res.json({
       success: true,
@@ -118,9 +164,9 @@ const getDealers = async (req, res) => {
   } catch {
     res.status(500).json({ success: false });
   }
-};/* =========================
-   GET SINGLE DEALER
-========================= */
+};
+// //   GET SINGLE DEALER
+// ========================= */
 
 const getDealerById = async (req, res) => {
   try {
@@ -150,20 +196,34 @@ const getDealerById = async (req, res) => {
 
 const updateDealer = async (req, res) => {
   try {
-
     const dealer = await Dealer.findById(req.params.dealerId);
 
     if (!dealer) {
       return res.status(404).json({ success: false });
     }
 
+    let updateData = {
+      ...req.body,
+      is_active:
+        req.body.is_active === "true" || req.body.is_active === true
+    };
+
+    // 🔥 IMAGE UPDATE FIX
+    if (req.file) {
+
+      // OPTIONAL: delete old image
+      if (dealer.business_logo) {
+        try {
+          fs.unlinkSync(`uploads/${dealer.business_logo}`);
+        } catch {}
+      }
+
+      updateData.business_logo = req.file.filename;
+    }
+
     const updated = await Dealer.findByIdAndUpdate(
       req.params.dealerId,
-      {
-        ...req.body,
-        is_active:
-          req.body.is_active === "true" || req.body.is_active === true
-      },
+      updateData,
       { new: true }
     );
 
@@ -176,7 +236,6 @@ const updateDealer = async (req, res) => {
     res.status(500).json({ success: false });
   }
 };
-
 /* =========================
    DELETE DEALER
 ========================= */
