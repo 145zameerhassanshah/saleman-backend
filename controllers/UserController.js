@@ -76,7 +76,6 @@ async function createUser(req, res) {
 
 const getSalesmen = async (req, res) => {
   try {
-    console.log("Business ID:", req.params.businessId);
 
     const salesmen = await userModel.find({
       industry: req.params.businessId,
@@ -84,7 +83,6 @@ const getSalesmen = async (req, res) => {
       status: "Active"
     }).select("_id name email");
 
-    console.log("SALESMEN FOUND:", salesmen);
 
     res.status(200).json({
       success: true,

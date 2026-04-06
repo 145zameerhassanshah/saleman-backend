@@ -356,7 +356,6 @@ res.set({
 });
     return res.send(pdf);
   } catch (error) {
-    console.log("❌ PDF ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to generate PDF",
