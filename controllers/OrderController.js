@@ -322,7 +322,7 @@ async function updateOrderStatus (req, res){
     const id  = req.params.id;
     const status = req.body.status;
 
-    const validStatuses = ["approved", "rejected", "pending", "posted"];
+    const validStatuses = ["approved", "rejected", "pending", "posted","unapproved"];
 
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
@@ -340,12 +340,12 @@ async function updateOrderStatus (req, res){
       });
     }
 
-    if (order.status !== "unapproved") {
-      return res.status(400).json({
-        success: false,
-        message: "Only unapproved orders can be updated",
-      });
-    }
+    // if (order.status !== "unapproved") {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: "Only unapproved orders can be updated",
+    //   });
+    // }
 
     order.status = status;
     await order.save();
