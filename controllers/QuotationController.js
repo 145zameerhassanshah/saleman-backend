@@ -194,62 +194,91 @@ async function create(req, res) {
 ================================ */
 
 async function update(req, res) {
+  try {
     const { id } = req.params;
-
     const userId = req.user.id;
     const role = req.user.role?.toLowerCase();
 
     const quotation = await quotationModel.findById(id);
 
     if (!quotation) {
-      return res.status(404).json({ message: "Quotation not found" });
+      return res.status(404).json({ success: false, message: "Quotation not found" });
     }
 
-    // 🔒 ROLE CONTROL
     if (role !== "admin") {
-
-      if (quotation.status === "approved") {
-        return res.status(403).json({
-          success:false,
-          message: "Cannot update approved quotation",
-        });
-      }
-
       if (quotation.created_by.toString() !== userId.toString()) {
-        return res.status(403).json({
-          success:false,
-          message: "Not your quotation",
-        });
+        return res.status(403).json({ success: false, message: "Not your quotation" });
+      }
+      const status = quotation.status?.toLowerCase();
+      if (status !== "pending" && status !== "rejected") {
+        return res.status(403).json({ success: false, message: "Cannot update quotation with current status" });
+      }
+    } else {
+      const status = quotation.status?.toLowerCase();
+      if (status !== "pending" && status !== "approved") {
+        return res.status(403).json({ success: false, message: "Cannot update quotation with current status" });
       }
     }
 
     const { items } = req.body;
 
-    const preparedItems = [];
+    // ✅ subtotal from item.total (item-level discounts already applied)
+    const subtotal = items.reduce((sum, item) => {
+      return sum + (Number(item.total) || 0);
+    }, 0);
 
-let subtotal = 0;
+    // ✅ raw input values from frontend
+    const discountInput = Number(req.body.discount) || 0;
+    const taxInput = Number(req.body.tax) || 0;
+    const discount_type = req.body.discount_type || "fixed";
+    const tax_type = req.body.tax_type || "fixed";
 
-for (const item of items) {
-  const gross = item.quantity * item.unit_price;
-  const discountAmount = (gross * item.discount_percent) / 100;
+    const discountAmount =
+      discount_type === "percentage"
+        ? (subtotal * discountInput) / 100
+        : discountInput;
 
-  subtotal += gross - discountAmount;
-}    await quotation.updateOne({
-      ...req.body,
+    const taxAmount =
+      tax_type === "percentage"
+        ? ((subtotal - discountAmount) * taxInput) / 100
+        : taxInput;
+
+    const total = subtotal - discountAmount + taxAmount;
+
+    await quotation.updateOne({
+      valid_until: req.body.valid_until,
+      deliveryNotes: req.body.deliveryNotes,
+      notes: req.body.notes,
+      discount_type,
+      tax_type,
       subtotal,
-      updated_by: userId, 
+      discount: discountAmount,
+      tax: taxAmount,
+      total,
+      updated_by: userId,
     });
 
     await quotationItem.deleteMany({ quotation_id: id });
 
-    for (const item of preparedItems) {
+    // ✅ preparedItems now actually populated
+    for (const item of items) {
       await quotationItem.create({
         quotation_id: id,
-        ...item,
+        product_id: item.product_id,
+        category_id: item.category_id,
+        item_name: item.item_name,
+        quantity: Number(item.quantity),
+        unit_price: Number(item.unit_price),
+        discount_percent: Number(item.discount_percent) || 0,
+        total: Number(item.total),
       });
     }
 
-    return res.json({success:true, message: "Quotation updated successfully" });
+    return res.json({ success: true, message: "Quotation updated successfully" });
+
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
 }
 
 /* ================================
