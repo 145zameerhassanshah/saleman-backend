@@ -123,17 +123,25 @@ async function create(req, res) {
       const disc = Number(item.discount_percent) || 0;
 
       const gross = qty * price;
-      subtotal += gross;
 
-      preparedItems.push({
-        product_id: item.product_id,
-        category_id: item.category_id,
-        item_name: product.name,
-        quantity: qty,
-        unit_price: price,
-        discount_percent: disc,
-        total: gross - (gross * disc) / 100,
-      });
+const itemTotal =
+  item.discount_type === "amount"
+    ? gross - disc
+    : gross - (gross * disc) / 100;
+
+subtotal += itemTotal;
+
+     preparedItems.push({
+  product_id: item.product_id,
+  category_id: item.category_id,
+  item_name: product.name,
+  quantity: qty,
+  unit_price: price,
+  discount_percent: disc,
+  total: item.discount_type === "amount"
+    ? gross - disc
+    : gross - (gross * disc) / 100,
+});
     }
 
     const discountAmount =
