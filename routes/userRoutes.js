@@ -1,4 +1,4 @@
-const {createUser,login,getLoggedInUser,logout,getUser,forgotPassword,verifyOTP,updateUser,resetPassword,changePassword,getUsersByIndustry}=require("../controllers/UserController");
+const {createUser,login,getLoggedInUser,logout,getUser,forgotPassword,verifyOTP,updateUser,resetPassword,changePassword,getUsersByIndustry,getSalesmen}=require("../controllers/UserController");
 const {Router}=require("express");
 const {authMiddleware,roleMiddleware} = require("../middleware/exporter");
 const { super_admin_seed, admin_seed } = require("../utils/superAdminSeed");
@@ -29,6 +29,12 @@ router.post("/auth/forgot-password",forgotPassword);
 router.post("/auth/change-password",changePassword);
 router.post("/auth/verify-otp",verifyOTP);
 router.post("/auth/reset-password",resetPassword);
+router.get(
+  "/salesmen/:businessId",
+  authMiddleware,
+  roleMiddleware(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  getSalesmen
+);
 router.get("/industry/:industry_id",authMiddleware,roleMiddleware(USER_ROLES.SUPER_ADMIN,USER_ROLES.ADMIN),getUsersByIndustry)
 
 module.exports=router;

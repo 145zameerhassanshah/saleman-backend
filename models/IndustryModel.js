@@ -10,7 +10,7 @@ const industrySchema=new mongoose.Schema({
         type:String,
         default:null,
     },
-addresLogo:{
+addressLogo:{
         type:String,
         default:null,
     },

@@ -17,7 +17,8 @@ const createDealer = async (req, res) => {
       address,
       city,
       business_logo,
-      is_active
+      is_active,
+      userId   
     } = req.body;
 
     /* VALIDATION */
@@ -69,6 +70,7 @@ const createDealer = async (req, res) => {
       company_name: company_name.trim(),
       address,
       city,
+      userId: userId || null,
 business_logo: req.file ? req.file.filename : null,
       is_active: is_active === "true" || is_active === true,
       businessId: req.params.businessId ,
@@ -96,9 +98,17 @@ business_logo: req.file ? req.file.filename : null,
 
 const getDealers = async (req, res) => {
   try {
-    const dealers = await Dealer.find({
+
+    let filter = {
       businessId: req.params.businessId
-    });
+    };
+
+    if (req.user.user_type === "salesman") {
+      filter.userId = req.user.id;
+    }
+
+    const dealers = await Dealer.find(filter)
+      .populate("userId", "name email"); 
 
     res.json({
       success: true,
@@ -108,9 +118,7 @@ const getDealers = async (req, res) => {
   } catch {
     res.status(500).json({ success: false });
   }
-};
-
-/* =========================
+};/* =========================
    GET SINGLE DEALER
 ========================= */
 

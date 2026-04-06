@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const upload = require("../middleware/multer"); 
+
 const {
   createIndustry,
   getAllIndustries,
@@ -9,30 +10,33 @@ const {
   deleteIndustry
 } = require("../controllers/IndustryController");
 
+/* ================= CREATE ================= */
 router.post(
   "/",
-  upload.single("business_logo"),
+  upload.fields([
+    { name: "business_logo", maxCount: 1 },
+    { name: "addressLogo", maxCount: 1 }
+  ]),
   createIndustry
 );
 
-router.get(
-  "/",
-  getAllIndustries
-);
+/* ================= GET ALL ================= */
+router.get("/", getAllIndustries);
 
-router.get(
-  "/:id",
-  getIndustryById
-);
+/* ================= GET BY ID ================= */
+router.get("/:id", getIndustryById);
 
+/* ================= UPDATE ================= */
 router.put(
   "/:id",
+  upload.fields([
+    { name: "business_logo", maxCount: 1 },
+    { name: "addressLogo", maxCount: 1 }
+  ]),
   updateIndustry
 );
 
-router.delete(
-  "/:id",
-  deleteIndustry
-);
+/* ================= DELETE ================= */
+router.delete("/:id", deleteIndustry);
 
 module.exports = router;

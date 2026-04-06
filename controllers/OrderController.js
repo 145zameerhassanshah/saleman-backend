@@ -76,6 +76,7 @@ async function showAll(req, res) {
       const orders = await orderModel
         .find(filter)
         .populate("dealer_id")
+        .populate("businessId", "businessName business_logo addressLogo")
         .populate("createdBy", "name email user_type")
         .populate("updatedBy", "name email user_type")
         .sort({ createdAt: -1 });

@@ -1,6 +1,8 @@
 const AuthService = require("../sevices/authutilties");
 const userModel = require("../models/UserModel");
 const { sendEmail } = require("../utils/email");
+const USER_ROLES = require("../models/userEnum"); 
+
 
 
 async function createUser(req, res) {
@@ -71,6 +73,33 @@ async function createUser(req, res) {
   }
 }
 
+
+
+const getSalesmen = async (req, res) => {
+  try {
+    console.log("Business ID:", req.params.businessId);
+
+    const salesmen = await userModel.find({
+      industry: req.params.businessId,
+      user_type: USER_ROLES.SALESMAN,
+      status: "Active"
+    }).select("_id name email");
+
+    console.log("SALESMEN FOUND:", salesmen);
+
+    res.status(200).json({
+      success: true,
+      salesmen
+    });
+
+  } catch (err) {
+    console.error("GET SALESMEN ERROR:", err); // 🔥 IMPORTANT
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
 async function login(req, res) {
   const { email, password } = req.body;
 
@@ -348,5 +377,6 @@ module.exports = {
   verifyOTP,
   resetPassword,
   changePassword,
-  getUsersByIndustry
+  getUsersByIndustry,
+  getSalesmen
 };

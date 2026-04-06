@@ -15,6 +15,11 @@ const DealerSchema= new mongoose.Schema({
     ref: "IndustryModel",
     default:null
   },
+userId: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "UserModel",  
+  default: null
+},
   phone_number:{
     type:String,
     required:true,
