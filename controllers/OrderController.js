@@ -242,6 +242,9 @@ async function update(req, res) {
       return res.json({ success: true, message: "Order updated successfully" });
     }
 
+    if(req.user.role==="salesman"){
+      order.status="unapproved"
+    }
     const {
       dealer_id,
       order_date,
@@ -289,6 +292,7 @@ async function update(req, res) {
       notes,
       payment_term,
     });
+    await order.save();
 
     await orderItemModel.deleteMany({ order_id: id });
 
@@ -318,7 +322,7 @@ async function updateOrderStatus (req, res){
     const id  = req.params.id;
     const status = req.body.status;
 
-    const validStatuses = ["approved", "rejected", "pending", "posted"];
+    const validStatuses = ["approved", "rejected", "pending", "posted","unapproved"];
 
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
@@ -336,12 +340,12 @@ async function updateOrderStatus (req, res){
       });
     }
 
-    if (order.status !== "unapproved") {
-      return res.status(400).json({
-        success: false,
-        message: "Only unapproved orders can be updated",
-      });
-    }
+    // if (order.status !== "unapproved") {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: "Only unapproved orders can be updated",
+    //   });
+    // }
 
     order.status = status;
     await order.save();
@@ -517,7 +521,7 @@ const pdf = await page.pdf({
     return res.send(pdf);
 
   } catch (error) {
-    console.log("❌ PDF ERROR:", error);
+    
     return res.status(500).json({
       success: false,
       message: "Failed to generate PDF",
