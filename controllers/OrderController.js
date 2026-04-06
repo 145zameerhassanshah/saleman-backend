@@ -136,6 +136,7 @@ async function store(req, res) {
     deliveryNotes,
     payment_term 
   } = req.body;
+
   // ✅ Parse all numeric fields explicitly
   const discount = Number(req.body.discount) || 0;
   const tax = Number(req.body.tax) || 0;
@@ -148,13 +149,15 @@ async function store(req, res) {
   const subtotal = items.reduce((sum, i) => {
   const qty = Number(i.quantity) || 0;
   const price = Number(i.unit_price) || 0;
-  const discountPercent = Number(i.discount_percent) || 0;
+  const discountVal = Number(i.discount_percent) || 0;
+  const gross = qty * price;
 
-  const subt = qty * price;
+  const discountAmount =
+    i.discount_type === "amount"
+      ? discountVal
+      : (gross * discountVal) / 100;
 
-  const discountAmount = (subt * discountPercent) / 100;
-
-  return sum + (subt - discountAmount);
+  return sum + (gross - discountAmount);
 }, 0);
   /* DISCOUNT */
   const discountAmount =
@@ -205,10 +208,10 @@ async function store(req, res) {
       quantity: Number(item.quantity),
       unit_price: Number(item.unit_price),
       discount_percent: Number(item.discount_percent) || 0,
-      total:
-        Number(item.quantity) *
-        Number(item.unit_price) *
-        (1 - (Number(item.discount_percent) || 0) / 100)
+     total:
+  item.discount_type === "percent"
+    ? Number(item.quantity) * Number(item.unit_price) * (1 - (Number(item.discount_percent) || 0) / 100)
+    : Number(item.quantity) * Number(item.unit_price) - (Number(item.discount_percent) || 0)
     });
   }
 
@@ -223,78 +226,58 @@ async function store(req, res) {
 ================================ */
 
 async function update(req, res) {
-
   try {
-
     const id = req.params.id;
-
     const order = await orderModel.findById(id);
 
     if (!order) {
-      return res.status(404).json({
-        success:false,
-        message: "Order not found"
-      });
+      return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    // update order
-if (req.user.role === "dispatcher" || req.user.role==="accountant") {
-  order.status = req.body.status;
-  order.deliveryNotes=req.body.deliveryNotes;
-  order.updatedBy=req.user.id;
-  await order.save();
-  return res.json({ success: true });
-}
+    if (req.user.role === "dispatcher" || req.user.role === "accountant") {
+      order.status = req.body.status;
+      order.deliveryNotes = req.body.deliveryNotes;
+      order.updatedBy = req.user.id;
+      await order.save();
+      return res.json({ success: true, message: "Order updated successfully" });
+    }
 
     const {
       dealer_id,
       order_date,
       due_date,
-      discount,
       discount_type,
-      tax,
       tax_type,
       notes,
-      payment_term 
+      payment_term,
     } = req.body;
 
     const items = req.body.items || [];
 
+    // ✅ subtotal from items (item-level discounts already applied in item.total)
+    const subtotal = items.reduce((sum, i) => {
+      return sum + (Number(i.total) || 0);
+    }, 0);
 
-const subtotal = items.reduce((sum, i) => {
-  const qty = Number(i.quantity) || 0;
-  const price = Number(i.unit_price) || 0;
-  const discountPercent = Number(i.discount_percent) || 0;
+    // ✅ discount & tax come as RAW user input (rate or amount), recalculate here
+    const discountInput = Number(req.body.discount) || 0;
+    const taxInput = Number(req.body.tax) || 0;
 
-  const subt = qty * price;
-  const discountAmount = (subt * discountPercent) / 100;
+    const discountAmount =
+      discount_type === "percent"
+        ? (subtotal * discountInput) / 100
+        : discountInput;
 
-  return sum + (subt - discountAmount);
-}, 0);
-
-/* DISCOUNT */
-const discountAmount =
-  discount_type === "percent"
-    ? (subtotal * discount) / 100
-    : discount_type === "fixed"
-    ? discount
-    : 0;
-
-/* TAX */
-const taxAmount =
-  tax_type === "percent"
-    ? ((subtotal - discountAmount) * tax) / 100
-    : tax_type === "fixed"
-    ? tax
-    : 0;
+    const taxAmount =
+      tax_type === "percent"
+        ? ((subtotal - discountAmount) * taxInput) / 100
+        : taxInput;
 
     const total = subtotal - discountAmount + taxAmount;
 
-
     await order.updateOne({
-
       dealer_id,
-      updatedBy:req.user.id,
+      updatedBy: req.user.id,
       order_date,
       due_date,
       subtotal,
@@ -304,54 +287,30 @@ const taxAmount =
       tax_type,
       total,
       notes,
-      payment_term
-
+      payment_term,
     });
-
-
-    /* DELETE OLD ITEMS */
 
     await orderItemModel.deleteMany({ order_id: id });
 
-
-    /* CREATE NEW ITEMS */
-
     for (const item of items) {
-
       if (!item.product_id || !item.quantity || !item.unit_price) continue;
 
       await orderItemModel.create({
-
         order_id: id,
-        product_id: item.product_id,
-        quantity: item.quantity,
-        item_name:item.item_name,
-        unit_price: item.unit_price,
-        discount_percent: item.discount_percent || 0,
-
-        total:
-          item.quantity *
-          item.unit_price *
-          (1 - (item.discount_percent || 0) / 100)
-
+        product_id: item.product_id?._id || item.product_id,
+        quantity: Number(item.quantity),
+        item_name: item.item_name,
+        unit_price: Number(item.unit_price),
+        discount_percent: Number(item.discount_percent) || 0,
+        total: Number(item.total),
       });
-
     }
 
-    return res.status(200).json({
-      success:true,
-      message: "Order updated successfully"
-    });
+    return res.status(200).json({ success: true, message: "Order updated successfully" });
 
   } catch (error) {
-
-    return res.status(500).json({
-      success:true,
-      message: "Something went wrong"
-    });
-
+    return res.status(500).json({ success: false, message: "Something went wrong" });
   }
-
 }
 
 async function updateOrderStatus (req, res){
