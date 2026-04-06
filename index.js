@@ -28,7 +28,7 @@ app.use("/users", userRouter);
 app.use("/products",authMiddleware,roleMiddleware(USER_ROLES.ADMIN),productRouter);
 app.use("/dealers",authMiddleware,roleMiddleware(USER_ROLES.ADMIN,USER_ROLES.SALESMAN),dealerRouter);
 
-app.use("/category",authMiddleware,roleMiddleware(USER_ROLES.ADMIN,USER_ROLES.SALESMAN),categoryRouter);
+app.use("/category",authMiddleware,roleMiddleware(USER_ROLES.ADMIN,USER_ROLES.SALESMAN,USER_ROLES.DISPATCHER),categoryRouter);
 app.use("/sub-category",authMiddleware,roleMiddleware(USER_ROLES.ADMIN,USER_ROLES.SALESMAN),subCategoryRouter);
 app.use("/quotation",authMiddleware,roleMiddleware(USER_ROLES.ADMIN,USER_ROLES.SALESMAN),quotationRouter);
 app.use("/order",authMiddleware,orderRouter);

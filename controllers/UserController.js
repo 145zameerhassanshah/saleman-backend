@@ -58,7 +58,6 @@ async function createUser(req, res) {
 
     await newUser.save();
 
-
     return res.status(201).json({
       success: true,
       message: `${req.body.user_type} created successfully`,
@@ -342,6 +341,14 @@ async function changePassword(req,res){
 
     if (req.body.status) user.status = req.body.status;
 
+    if(req.body.designation) user.designation=req.body.designation;
+    if(req.body.address) user.address=req.body.address;
+
+    if(req.body.city) user.city=req.body.city;
+    if(req.body.phone_number) user.phone_number=req.body.phone_number;
+
+    if(req.body.whatsapp_number) user.whatsapp_number=req.body.whatsapp_number;
+    if(req.body.territory) user.territory=req.body.territory;
     /* ================= PROFILE IMAGE ================= */
 
     if (req.file) {
