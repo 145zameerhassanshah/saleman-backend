@@ -112,6 +112,10 @@ payment_term: {
   deliveryNotes:{
     type:String,
     default:null
+  },
+  rejectReason:{
+    type:String,
+    default:null
   }
 
 }, {
