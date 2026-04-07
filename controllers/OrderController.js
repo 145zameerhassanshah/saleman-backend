@@ -340,6 +340,10 @@ async function updateOrderStatus (req, res){
       });
     }
 
+     if(req.body.status==="rejected"){
+      order.rejectReason=req.body.rejectReason;
+    }
+
     // if (order.status !== "unapproved") {
     //   return res.status(400).json({
     //     success: false,
