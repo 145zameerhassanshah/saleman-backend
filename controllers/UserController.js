@@ -89,9 +89,8 @@ const getSalesmen = async (req, res) => {
   }
 };
 async function login(req, res) {
+  try{
   const { email, password } = req.body;
-
-  try {
     const isUser = await AuthService.findUser(email);
 
     if (!isUser) {
@@ -114,8 +113,8 @@ async function login(req, res) {
     }
 
     const code = AuthService.generateOTP();
-    user.otp = code;
-    user.otpExpiry = Date.now() + 5 * 60 * 1000;
+    isUser.otp = code;
+    isUser.otpExpiry = Date.now() + 5 * 60 * 1000;
 
     await isUser.save();
 
@@ -145,7 +144,7 @@ async function verifyUser(req, res) {
   if (!user || user.otpExpiry < Date.now() || user.otp !== otp) {
     return res.status(400).json({
       success: false,
-      message: "Invalid or expired email",
+      message: "Invalid or expired code",
     });
   }
 
