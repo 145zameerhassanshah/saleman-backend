@@ -357,9 +357,22 @@ const updateIndustry = async (req, res) => {
       });
     }
 
+    let updateData = { ...req.body };
+
+    // 🔥 HANDLE IMAGES
+    if (req.files) {
+      if (req.files.business_logo) {
+        updateData.business_logo = req.files.business_logo[0].filename;
+      }
+
+      if (req.files.addressLogo) {
+        updateData.addressLogo = req.files.addressLogo[0].filename;
+      }
+    }
+
     const industry = await industryModel.findByIdAndUpdate(
       id,
-      req.body,
+      updateData,
       { new: true, runValidators: true }
     );
 
@@ -385,7 +398,6 @@ const updateIndustry = async (req, res) => {
     });
   }
 };
-
 /* ================= DELETE ================= */
 const deleteIndustry = async (req, res) => {
   try {
