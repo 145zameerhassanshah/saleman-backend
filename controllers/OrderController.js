@@ -344,6 +344,10 @@ async function updateOrderStatus (req, res){
       order.rejectReason=req.body.rejectReason;
     }
 
+    if(req.body.status==="approved"){
+      order.rejectReason=null;
+    }
+
     // if (order.status !== "unapproved") {
     //   return res.status(400).json({
     //     success: false,
