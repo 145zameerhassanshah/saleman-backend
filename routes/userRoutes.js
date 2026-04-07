@@ -1,4 +1,4 @@
-const {createUser,login,getLoggedInUser,logout,getUser,forgotPassword,verifyOTP,updateUser,resetPassword,changePassword,getUsersByIndustry,getSalesmen}=require("../controllers/UserController");
+const {createUser,login,getLoggedInUser,verifyUser,logout,getUser,forgotPassword,verifyOTP,updateUser,resetPassword,changePassword,getUsersByIndustry,getSalesmen}=require("../controllers/UserController");
 const {Router}=require("express");
 const {authMiddleware,roleMiddleware} = require("../middleware/exporter");
 const { super_admin_seed, admin_seed } = require("../utils/superAdminSeed");
@@ -24,6 +24,7 @@ router.post("/auth/login",login);
 router.patch("/update/:id", authMiddleware,roleMiddleware(USER_ROLES.ADMIN), upload.single("profile_image"), updateUser);
 router.get("/me",authMiddleware,getLoggedInUser);
 router.get("/user-profile/:id",authMiddleware,getUser);
+router.post("/verify-user",verifyUser)
 router.get("/auth/logout",authMiddleware,logout);
 router.post("/auth/forgot-password",forgotPassword);
 router.post("/auth/change-password",changePassword);
