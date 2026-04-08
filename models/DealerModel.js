@@ -1,71 +1,105 @@
-const mongoose= require('mongoose');
+const mongoose = require("mongoose");
 
-const DealerSchema= new mongoose.Schema({
-  name:{
-    type:String,
-    required:true
+const DealerSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true
   },
-  email:{
-    type:String,
-    required:true,
-    unique:true
+
+  email: {
+    type: String,
+    required: true,
+    unique: true
   },
+
   businessId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "IndustryModel",
-    default:null
+    default: null
   },
-userId: {
+
+  phone_number: {
+    type: String,
+    required: true,
+    unique: true
+  },
+
+  whatsapp_number: {
+    type: String,
+    required: true,
+    unique: true
+  },
+
+  company_name: {
+    type: String,
+    required: true
+  },
+
+  business_logo: String,
+
+  billing_address: String,
+  shipping_address: String,
+  city: String,
+  country: String,
+
+  is_active: {
+    type: Boolean,
+    default: true
+  },
+
+  /* 🔥 CORE LOGIC */
+
+  created_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "UserModel",
+    required: true
+  },
+
+assigned_to: {
   type: mongoose.Schema.Types.ObjectId,
-  ref: "UserModel",  
-  default: null
+  ref: "UserModel",
+  required: true
 },
-  phone_number:{
-    type:String,
-    required:true,
-    unique:true
-  },
-  whatsapp_number:{
-    type:String,
-    required:true,
-    unique:true
-  },
-  company_name:{
-    type:String,
-    required:true
+  status: {
+    type: String,
+    enum: ["pending", "approved", "rejected"],
+    default: "pending"
   },
 
-  business_logo:{
-    type:String
+  rejectReason: {
+    type: String,
+    default: ""
   },
 
-  billing_address:{
-    type:String
+  updated_by: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "UserModel",
+    default: null
   },
 
-  shipping_address:{
-    type:String
-  },
+  assignment_history: [
+    {
+      from: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "UserModel",
+        default: null
+      },
+      to: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "UserModel"
+      },
+      changed_by: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "UserModel"
+      },
+      date: {
+        type: Date,
+        default: Date.now
+      },
+      note: String
+    }
+  ]
 
-  city:{
-    type:String
-  },
+}, { timestamps: true });
 
-  country:{
-    type:String
-  },
-
-  is_active:{                 
-    type:Boolean,
-    default:true
-  },
-
-  created_by:{
-    type:mongoose.Schema.Types.ObjectId,
-    ref:"User",
-    required:true
-  }
-
-},{timestamps:true});
-
-module.exports=mongoose.model("Dealer",DealerSchema);
+module.exports = mongoose.model("Dealer", DealerSchema);

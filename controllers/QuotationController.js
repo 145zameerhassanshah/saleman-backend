@@ -59,10 +59,10 @@ async function showAll(req, res) {
     }
     const quotations = await quotationModel
       .find(filter)
+      .populate("businessId") 
       .populate("dealer_id")
       .populate("created_by", "name email user_type")
-      .populate("updated_by", "name email user_type")
-      .sort({ createdAt: -1 });
+      .populate("updated_by", "name email user_type");
 
     return res.status(200).json({ quotations });
 
@@ -330,8 +330,7 @@ async function downloadPDF(req, res) {
       await page.setExtraHTTPHeaders({ Cookie: req.headers.cookie });
     }
 
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
-
+await page.goto(url, { waitUntil: "networkidle0", timeout: 60000 }); 
     await page.waitForSelector("#invoice", { timeout: 10000 });
 
     const bodyHandle = await page.$("body");
@@ -368,20 +367,34 @@ async function getQuotationById(req, res) {
   try {
     const quotation = await quotationModel
       .findById(req.params.id)
-      .populate("dealer_id created_by");
+      .populate("businessId") 
+      .populate("dealer_id")
+      .populate("created_by", "name email user_type")
+      .populate("updated_by", "name email user_type");
 
-    if (!quotation) return res.status(404).json({ success: false, message: "Quotation not found" });
+if (!quotation?.businessId) {
+  return res.status(400).json({
+    message: "Business data missing (logo issue)",
+  });
+    }
 
     const items = await quotationItem
       .find({ quotation_id: req.params.id })
       .populate("product_id");
 
-    return res.status(200).json({ success: true, quotation, items });
+    return res.status(200).json({
+      success: true,
+      quotation,
+      items,
+    });
+
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Something went wrong" });
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+    });
   }
 }
-
 async function updateQuotationStatus (req, res){
   try{
     const id  = req.params.id;
