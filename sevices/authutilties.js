@@ -14,7 +14,7 @@ async hashPassword(password){
 };
 
   generateOTP(){
-    return Math.floor(100000 + Math.random()*9000000).toString();
+    return Math.floor(100000 + Math.random()*900000).toString();
   }
 
 /* ================================
