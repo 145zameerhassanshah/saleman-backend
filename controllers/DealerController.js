@@ -141,10 +141,7 @@ const updateDealer = async (req, res) => {
 
     /* IMAGE */
     if (req.file) {
-      if (dealer.business_logo) {
-        try { fs.unlinkSync(`uploads/${dealer.business_logo}`); } catch {}
-      }
-      updateData.business_logo = req.file.filename;
+      updateData.business_logo = req.file.path;
     }
 
     /* ADMIN REASSIGN */
