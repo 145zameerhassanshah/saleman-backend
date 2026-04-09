@@ -440,7 +440,10 @@ const getDealerById = async (req, res) => {
   try {
     const dealer = await Dealer.findById(req.params.dealerId)
       .populate("assigned_to", "name")
-      .populate("created_by", "name");
+      .populate("created_by", "name")
+        .populate("assignment_history.from", "name")
+  .populate("assignment_history.to", "name")
+  .populate("assignment_history.changed_by", "name");
 
     if (!dealer) return res.status(404).json({ success: false });
 
@@ -589,7 +592,7 @@ const unapproveDealer = async (req, res) => {
 
 const reassignDealer = async (req, res) => {
   try {
-    const { newSalesmanId } = req.body;
+    const { newSalesmanId, reason} = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(newSalesmanId)) {
       return res.status(400).json({ success: false });
@@ -602,7 +605,7 @@ const reassignDealer = async (req, res) => {
       from: dealer.assigned_to,
       to: newSalesmanId,
       changed_by: req.user.id,
-      note: "Reassigned"
+note: reason?.trim() || "Reassigned"
     });
 
     dealer.assigned_to = newSalesmanId;

@@ -62,7 +62,7 @@ assigned_to: {
 },
   status: {
     type: String,
-    enum: ["pending", "approved", "rejected"],
+    enum: ["pending", "approved", "rejected", "unapproved"],
     default: "pending"
   },
 
