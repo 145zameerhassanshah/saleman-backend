@@ -39,7 +39,7 @@ async function createUser(req, res) {
     let profile_image = null;
 
     if (req.file) {
-      profile_image = req.file.filename;
+      profile_image = req.file.path;
       // OR req.file.path (if using cloud or full path)
     }
 
@@ -400,7 +400,7 @@ async function updateUser(req, res) {
     /* ================= PROFILE IMAGE ================= */
 
     if (req.file) {
-      user.profile_image = req.file.filename;
+      user.profile_image = req.file.path;
     }
 
     await user.save();

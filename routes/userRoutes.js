@@ -3,7 +3,7 @@ const {Router}=require("express");
 const {authMiddleware,roleMiddleware} = require("../middleware/exporter");
 const { super_admin_seed, admin_seed } = require("../utils/superAdminSeed");
 const USER_ROLES=require("../models/userEnum")
-const upload = require("../middleware/multer"); 
+const {upload} = require("../bucket/config"); 
 
 const router=Router();
 
