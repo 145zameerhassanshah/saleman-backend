@@ -192,7 +192,15 @@
 
 
 
-const { industryModel } = require("../models/exporter");
+const {
+  industryModel,
+  dealerModel,
+  userModel,
+  orderModel,
+  orderItemModel,
+  quotationModel,
+  quotationItem
+} = require("../models/exporter");
 const mongoose = require("mongoose");
 
 /* ================= GET ALL ================= */
@@ -399,10 +407,12 @@ const updateIndustry = async (req, res) => {
   }
 };
 /* ================= DELETE ================= */
+
 const deleteIndustry = async (req, res) => {
   try {
     const { id } = req.params;
 
+    /* ================= VALIDATION ================= */
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
@@ -410,7 +420,7 @@ const deleteIndustry = async (req, res) => {
       });
     }
 
-    const industry = await industryModel.findByIdAndDelete(id);
+    const industry = await industryModel.findById(id);
 
     if (!industry) {
       return res.status(404).json({
@@ -419,13 +429,42 @@ const deleteIndustry = async (req, res) => {
       });
     }
 
+    /* ================= CASCADE DELETE ================= */
+
+    // 1. Dealers
+    await dealerModel.deleteMany({ businessId: id });
+
+    // 2. Users (Admin, Salesman, Accountant)
+    await userModel.deleteMany({ industry: id });
+
+    // 3. Orders + Order Items
+    const orders = await orderModel.find({ businessId: id }).select("_id");
+
+    const orderIds = orders.map(o => o._id);
+
+    await orderItemModel.deleteMany({ order_id: { $in: orderIds } });
+    await orderModel.deleteMany({ businessId: id });
+
+    // 4. Quotations + Items
+    const quotations = await quotationModel.find({ businessId: id }).select("_id");
+
+    const quotationIds = quotations.map(q => q._id);
+
+    await quotationItem.deleteMany({ quotation_id: { $in: quotationIds } });
+    await quotationModel.deleteMany({ businessId: id });
+
+    // 5. Finally Industry
+    await industryModel.findByIdAndDelete(id);
+
+    /* ================= RESPONSE ================= */
+
     res.status(200).json({
       success: true,
-      message: "Industry deleted successfully",
+      message: "Industry and all related data deleted successfully",
     });
 
   } catch (error) {
-    console.log(error);
+    console.log("❌ DELETE ERROR:", error);
 
     res.status(500).json({
       success: false,

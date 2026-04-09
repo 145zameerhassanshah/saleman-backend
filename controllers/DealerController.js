@@ -1,225 +1,508 @@
+
+// const mongoose = require("mongoose");
+// const Dealer = require("../models/DealerModel");
+// const fs = require("fs");
+
+// /* =========================
+//    CREATE DEALER
+// ========================= */
+
+// const createDealer = async (req, res) => {
+//   try {
+//     const {
+//       name,
+//       email,
+//       phone_number,
+//       whatsapp_number,
+//       company_name,
+//       city,
+//       billing_address,
+//       shipping_address,
+//       country,
+//       is_active,
+//       userId // only for admin
+//     } = req.body;
+
+//     /* VALIDATION */
+
+//     if (!name?.trim()) return res.status(400).json({ success: false, message: "Dealer name is required" });
+//     if (!email?.trim()) return res.status(400).json({ success: false, message: "Email is required" });
+//     if (!/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ success: false, message: "Invalid email format" });
+//     if (!phone_number?.trim()) return res.status(400).json({ success: false, message: "Phone number is required" });
+//     if (!whatsapp_number?.trim()) return res.status(400).json({ success: false, message: "WhatsApp number is required" });
+//     if (!company_name?.trim()) return res.status(400).json({ success: false, message: "Company name is required" });
+//     if (!city?.trim()) return res.status(400).json({ success: false, message: "City is required" });
+//     if (!country?.trim()) return res.status(400).json({ success: false, message: "Country is required" });
+
+//     /* UNIQUE CHECK */
+
+//     const existDealer = await Dealer.findOne({
+//       businessId: req.params.businessId,
+//       $or: [{ email }, { phone_number }, { company_name }]
+//     });
+
+//     if (existDealer) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Dealer already exists in your business"
+//       });
+//     }
+
+//     /* ASSIGNMENT LOGIC */
+
+//     const assigned_to =
+//       req.user.role === "admin"
+//         ? userId
+//         : req.user.id;
+
+//     const status =
+//       req.user.role === "admin"
+//         ? "approved"
+//         : "pending";
+
+//     const dealer = new Dealer({
+//       name: name.trim(),
+//       email,
+//       phone_number: phone_number.trim(),
+//       whatsapp_number,
+//       company_name: company_name.trim(),
+//       city,
+//       billing_address,
+//       shipping_address,
+//       country,
+//       business_logo: req.file ? req.file.filename : null,
+//       is_active: is_active === "true" || is_active === true,
+
+//       businessId: req.params.businessId,
+
+//       created_by: req.user.id,
+//       assigned_to,
+//       status,
+
+//       assignment_history: [
+//         {
+//           from: null,
+//           to: assigned_to,
+//           changed_by: req.user.id,
+//           note:
+//             req.user.role === "admin"
+//               ? "Created by admin"
+//               : "Created by salesman"
+//         }
+//       ]
+//     });
+
+//     await dealer.save();
+
+//     res.status(201).json({
+//       success: true,
+//       message:
+//         status === "approved"
+//           ? "Dealer created and approved"
+//           : "Dealer submitted for approval",
+//       dealer
+//     });
+
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+// /* =========================
+//    GET ALL DEALERS
+// ========================= */
+
+// const getDealers = async (req, res) => {
+//   try {
+//     let filter = {
+//       businessId: req.params.businessId
+//     };
+
+//     if (req.user.role === "salesman") {
+//       filter.assigned_to = req.user.id;
+//     }
+
+//     const dealers = await Dealer.find(filter)
+//       .populate("assigned_to", "name email")
+//       .populate("created_by", "name");
+
+//     res.json({ success: true, dealers });
+
+//   } catch {
+//     res.status(500).json({ success: false });
+//   }
+// };
+
+
+// /* =========================
+//    GET SINGLE DEALER
+// ========================= */
+
+// const getDealerById = async (req, res) => {
+//   try {
+//     const dealer = await Dealer.findById(req.params.dealerId)
+//       .populate("assigned_to", "name")
+//       .populate("created_by", "name");
+
+//     if (!dealer) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Dealer not found"
+//       });
+//     }
+
+//     res.json({ success: true, dealer });
+
+//   } catch {
+//     res.status(500).json({ success: false });
+//   }
+// };
+
+
+
+// /* =========================
+//    UPDATE DEALER
+// ========================= */
+
+// const updateDealer = async (req, res) => {
+//   try {
+//     const dealer = await Dealer.findById(req.params.dealerId);
+
+//     if (!dealer) {
+//       return res.status(404).json({ success: false });
+//     }
+
+//     let updateData = {
+//       ...req.body,
+//       is_active:
+//         req.body.is_active === "true" || req.body.is_active === true
+//     };
+
+//     /* 🔥 IMAGE UPDATE */
+//     if (req.file) {
+//       if (dealer.business_logo) {
+//         try {
+//           fs.unlinkSync(`uploads/${dealer.business_logo}`);
+//         } catch {}
+//       }
+//       updateData.business_logo = req.file.filename;
+//     }
+
+//     /* 🔥 SALESMAN EDIT → PENDING */
+//     if (req.user.role === "salesman" && dealer.status === "approved") {
+//       updateData.status = "pending";
+
+//       dealer.assignment_history.push({
+//         from: dealer.assigned_to,
+//         to: dealer.assigned_to,
+//         changed_by: req.user.id,
+//         note: "Edited by salesman → sent for approval"
+//       });
+//     }
+
+//     updateData.updated_by = req.user.id;
+
+//     const updated = await Dealer.findByIdAndUpdate(
+//       req.params.dealerId,
+//       updateData,
+//       { new: true }
+//     );
+
+//     res.json({ success: true, dealer: updated });
+
+//   } catch {
+//     res.status(500).json({ success: false });
+//   }
+// };
+
+
+
+// /* =========================
+//    APPROVE / REJECT
+// ========================= */
+
+// const updateDealerStatus = async (req, res) => {
+//   try {
+//     const { status, rejectReason } = req.body;
+
+//     const dealer = await Dealer.findById(req.params.id);
+
+//     dealer.status = status;
+
+//     dealer.rejectReason = status === "rejected" ? rejectReason : "";
+
+//     dealer.assignment_history.push({
+//       from: dealer.assigned_to,
+//       to: dealer.assigned_to,
+//       changed_by: req.user.id,
+//       note: `Dealer ${status}`
+//     });
+
+//     dealer.updated_by = req.user.id;
+
+//     await dealer.save();
+
+//     res.json({ success: true });
+
+//   } catch {
+//     res.status(500).json({ success: false });
+//   }
+// };
+
+
+
+// /* =========================
+//    UNAPPROVE
+// ========================= */
+
+// const unapproveDealer = async (req, res) => {
+//   try {
+//     const dealer = await Dealer.findById(req.params.id);
+
+//     dealer.status = "pending";
+
+//     dealer.assignment_history.push({
+//       from: dealer.assigned_to,
+//       to: dealer.assigned_to,
+//       changed_by: req.user.id,
+//       note: "Unapproved by admin"
+//     });
+
+//     dealer.updated_by = req.user.id;
+
+//     await dealer.save();
+
+//     res.json({ success: true });
+
+//   } catch {
+//     res.status(500).json({ success: false });
+//   }
+// };
+// /* =========================
+//    REASSIGN DEALER
+// ========================= */
+
+// const reassignDealer = async (req, res) => {
+//   try {
+//     const { newSalesmanId } = req.body;
+
+//     const dealer = await Dealer.findById(req.params.id);
+
+//     const old = dealer.assigned_to;
+
+//     dealer.assigned_to = newSalesmanId;
+
+//     dealer.assignment_history.push({
+//       from: old,
+//       to: newSalesmanId,
+//       changed_by: req.user.id,
+//       note: "Reassigned by admin"
+//     });
+
+//     dealer.updated_by = req.user.id;
+
+//     await dealer.save();
+
+//     res.json({ success: true });
+
+//   } catch {
+//     res.status(500).json({ success: false });
+//   }
+// };
+
+
+// /* =========================
+//    DELETE DEALER
+// ========================= */
+
+// const deleteDealer = async (req, res) => {
+//   try {
+//     await Dealer.findByIdAndDelete(req.params.dealerId);
+
+//     res.json({ success: true, message: "Dealer deleted" });
+
+//   } catch {
+//     res.status(500).json({ success: false });
+//   }
+// };
+
+// module.exports = {
+//   createDealer,
+//   getDealers,
+//   getDealerById,
+//   updateDealer,
+//   updateDealerStatus,
+//   unapproveDealer,
+//   reassignDealer,
+//   deleteDealer
+// };
+
+
 const mongoose = require("mongoose");
 const Dealer = require("../models/DealerModel");
 const fs = require("fs");
 
-/* =========================
-   CREATE DEALER
-========================= */
+/* ================= CREATE DEALER ================= */
 
 const createDealer = async (req, res) => {
   try {
     const {
-      name,
+      name, email, phone_number, whatsapp_number,
+      company_name, city, billing_address,
+      shipping_address, country, is_active, userId
+    } = req.body;
+
+    /* VALIDATION */
+    if (!name?.trim()) return res.status(400).json({ success: false, message: "Dealer name is required" });
+    if (!email?.trim()) return res.status(400).json({ success: false, message: "Email is required" });
+    if (!/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ success: false, message: "Invalid email" });
+    if (!phone_number?.trim()) return res.status(400).json({ success: false, message: "Phone required" });
+    if (!company_name?.trim()) return res.status(400).json({ success: false, message: "Company required" });
+
+    if (req.user.role === "admin" && !userId) {
+      return res.status(400).json({ success: false, message: "Salesman required" });
+    }
+
+    /* UNIQUE */
+    const exist = await Dealer.findOne({
+      businessId: req.params.businessId,
+      $or: [{ email }, { phone_number }, { company_name }]
+    });
+
+    if (exist) {
+      return res.status(400).json({ success: false, message: "Dealer already exists" });
+    }
+
+    /* ASSIGN */
+    const assigned_to = req.user.role === "admin" ? userId : req.user.id;
+    const status = req.user.role === "admin" ? "approved" : "pending";
+
+    const dealer = new Dealer({
+      name: name.trim(),
       email,
       phone_number,
       whatsapp_number,
       company_name,
       city,
-      business_logo,
       billing_address,
-shipping_address,
-country,
-      is_active,
-      userId   
-    } = req.body;
-
-    /* VALIDATION */
-
-    if (!name || !name.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Dealer name is required"
-      });
-    }
-
-    if (!phone_number || !phone_number.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Phone number is required"
-      });
-    }
-
-    if (!company_name || !company_name.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Company name is required"
-      });
-    }
-if (!city || !city.trim()) {
-      return res.status(400).json({
-        success: false,     
-        message: "City is required"
-      });
-    } 
-    if (!country || !country.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "Country is required"
-      });
-    } 
-    if (!whatsapp_number || !whatsapp_number.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: "WhatsApp number is required"
-      });
-    } 
-    if (!email || !email.trim()) {
-      return res.status(400).json({
-        success: false,     message: "Email is required"
-      });
-    }
-    if (email && !/^\S+@\S+\.\S+$/.test(email)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid email format"
-      });
-    } 
-    if(shipping_address && !shipping_address.trim()){
-      return res.status(400).json({
-        success: false,
-        message: "Shipping address cannot be empty"
-      });
-    } 
-if(billing_address && !billing_address.trim()){
-      return res.status(400).json({
-        success: false,
-        message: "Billing address cannot be empty"
-      });
-    }
-
-    /* UNIQUE CHECK (BUSINESS BASED) */
-
-    const existDealer = await Dealer.findOne({
-      businessId: req.params.businessId ,
-      $or: [
-        { email },
-        { phone_number },
-        { company_name }
-      ]
-    });
-
-    if (existDealer) {
-      return res.status(400).json({
-        success: false,
-        message: "Dealer already exists in your business"
-      });
-    }
-
-    const dealer = new Dealer({
-      name: name.trim(),
-      email,
-      phone_number: phone_number.trim(),
-      whatsapp_number,
-      company_name: company_name.trim(),
-      city,
-        billing_address,
-shipping_address,
+      shipping_address,
       country,
-      userId: userId || null,
-business_logo: req.file ? req.file.filename : null,
+      business_logo: req.file ? req.file.filename : null,
       is_active: is_active === "true" || is_active === true,
-      businessId: req.params.businessId ,
-      created_by: req.user.id
+      businessId: req.params.businessId,
+      created_by: req.user.id,
+      assigned_to,
+      status,
+      assignment_history: [{
+        from: null,
+        to: assigned_to,
+        changed_by: req.user.id,
+        note: "Dealer created"
+      }]
     });
 
     await dealer.save();
 
-    res.status(201).json({
+    res.json({
       success: true,
-      message: "Dealer created successfully",
+      message: status === "approved" ? "Created & approved" : "Submitted for approval",
       dealer
     });
 
   } catch (err) {
-    res.status(500).json({
-      success: false,
-      message: err.message
-    });
+    res.status(500).json({ success: false, message: err.message });
   }
-}; 
-/* =========================
-   GET ALL DEALERS
-========================= */
+};
+
+/* ================= GET ALL ================= */
 
 const getDealers = async (req, res) => {
   try {
-console.log("REQ USER:", req.user);
-    let filter = {
-      businessId: req.params.businessId
-    };
+    let filter = { businessId: req.params.businessId };
 
-    
     if (req.user.role === "salesman") {
-      filter.userId = new mongoose.Types.ObjectId(req.user.id);
+      filter.assigned_to = req.user.id;
     }
 
     const dealers = await Dealer.find(filter)
-      .populate("userId", "name email");
+      .populate("assigned_to", "name")
+      .populate("created_by", "name");
 
-    res.json({
-      success: true,
-      dealers
-    });
+    res.json({ success: true, dealers });
 
   } catch {
     res.status(500).json({ success: false });
   }
 };
-// //   GET SINGLE DEALER
-// ========================= */
+
+/* ================= GET SINGLE ================= */
 
 const getDealerById = async (req, res) => {
   try {
+    const dealer = await Dealer.findById(req.params.dealerId)
+      .populate("assigned_to", "name")
+      .populate("created_by", "name");
 
-    const dealer = await Dealer.findById(req.params.dealerId);
+    if (!dealer) return res.status(404).json({ success: false });
 
-    if (!dealer) {
-      return res.status(404).json({
-        success: false,
-        message: "Dealer not found"
-      });
+    // 🔥 SALESMAN SECURITY
+    if (req.user.role === "salesman" &&
+      String(dealer.assigned_to) !== String(req.user.id)) {
+      return res.status(403).json({ success: false, message: "Access denied" });
     }
 
-    res.json({
-      success: true,
-      dealer
-    });
+    res.json({ success: true, dealer });
 
   } catch {
     res.status(500).json({ success: false });
   }
 };
 
-/* =========================
-   UPDATE DEALER
-========================= */
+/* ================= UPDATE ================= */
 
 const updateDealer = async (req, res) => {
   try {
     const dealer = await Dealer.findById(req.params.dealerId);
+    if (!dealer) return res.status(404).json({ success: false });
 
-    if (!dealer) {
-      return res.status(404).json({ success: false });
+    // 🔥 SALESMAN LIMIT
+    if (req.user.role === "salesman" &&
+      String(dealer.assigned_to) !== String(req.user.id)) {
+      return res.status(403).json({ success: false, message: "Not allowed" });
     }
 
     let updateData = {
       ...req.body,
-      is_active:
-        req.body.is_active === "true" || req.body.is_active === true
+      is_active: req.body.is_active === "true" || req.body.is_active === true
     };
 
-    // 🔥 IMAGE UPDATE FIX
+    /* IMAGE */
     if (req.file) {
-
-      // OPTIONAL: delete old image
       if (dealer.business_logo) {
-        try {
-          fs.unlinkSync(`uploads/${dealer.business_logo}`);
-        } catch {}
+        try { fs.unlinkSync(`uploads/${dealer.business_logo}`); } catch {}
       }
-
       updateData.business_logo = req.file.filename;
     }
+
+    /* ADMIN REASSIGN */
+    if (req.user.role === "admin" && req.body.userId &&
+      String(req.body.userId) !== String(dealer.assigned_to)) {
+
+      dealer.assignment_history.push({
+        from: dealer.assigned_to,
+        to: req.body.userId,
+        changed_by: req.user.id,
+        note: "Reassigned during edit"
+      });
+
+      updateData.assigned_to = req.body.userId;
+    }
+
+    /* SALESMAN EDIT */
+    if (req.user.role === "salesman" && dealer.status === "approved") {
+      updateData.status = "pending";
+    }
+
+    updateData.updated_by = req.user.id;
 
     const updated = await Dealer.findByIdAndUpdate(
       req.params.dealerId,
@@ -227,36 +510,131 @@ const updateDealer = async (req, res) => {
       { new: true }
     );
 
-    res.json({
-      success: true,
-      dealer: updated
-    });
+    await dealer.save();
+
+    res.json({ success: true, dealer: updated });
 
   } catch {
     res.status(500).json({ success: false });
   }
 };
-/* =========================
-   DELETE DEALER
-========================= */
 
-const deleteDealer = async (req, res) => {
+/* ================= STATUS ================= */
+
+const updateDealerStatus = async (req, res) => {
   try {
+    const { status, rejectReason } = req.body;
 
-    await Dealer.findByIdAndDelete(req.params.dealerId);
+    const dealer = await Dealer.findById(req.params.id);
+    if (!dealer) return res.status(404).json({ success: false });
 
-    res.json({
-      success: true,
-      message: "Dealer deleted"
+    const validTransitions = {
+      pending: ["approved", "rejected"],
+      approved: ["unapproved", "rejected"],
+      unapproved: ["approved"],
+      rejected: ["approved"]
+    };
+
+    if (!validTransitions[dealer.status]?.includes(status)) {
+      return res.status(400).json({ success: false, message: "Invalid transition" });
+    }
+
+    if (status === "rejected" && !rejectReason?.trim()) {
+      return res.status(400).json({ success: false, message: "Reason required" });
+    }
+
+    dealer.status = status;
+    dealer.rejectReason = status === "rejected" ? rejectReason : "";
+    dealer.updated_by = req.user.id;
+
+    dealer.assignment_history.push({
+      from: dealer.assigned_to,
+      to: dealer.assigned_to,
+      changed_by: req.user.id,
+      note: `Status → ${status}`
     });
+
+    await dealer.save();
+
+    res.json({ success: true });
 
   } catch {
     res.status(500).json({ success: false });
   }
-};module.exports = {
+};
+
+/* ================= UNAPPROVE ================= */
+
+const unapproveDealer = async (req, res) => {
+  try {
+    const dealer = await Dealer.findById(req.params.id);
+
+    if (!dealer || dealer.status !== "approved") {
+      return res.status(400).json({ success: false });
+    }
+
+    dealer.status = "unapproved";
+    dealer.updated_by = req.user.id;
+
+    await dealer.save();
+
+    res.json({ success: true });
+
+  } catch {
+    res.status(500).json({ success: false });
+  }
+};
+
+/* ================= REASSIGN ================= */
+
+const reassignDealer = async (req, res) => {
+  try {
+    const { newSalesmanId } = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(newSalesmanId)) {
+      return res.status(400).json({ success: false });
+    }
+
+    const dealer = await Dealer.findById(req.params.id);
+    if (!dealer) return res.status(404).json({ success: false });
+
+    dealer.assignment_history.push({
+      from: dealer.assigned_to,
+      to: newSalesmanId,
+      changed_by: req.user.id,
+      note: "Reassigned"
+    });
+
+    dealer.assigned_to = newSalesmanId;
+    dealer.updated_by = req.user.id;
+
+    await dealer.save();
+
+    res.json({ success: true });
+
+  } catch {
+    res.status(500).json({ success: false });
+  }
+};
+
+/* ================= DELETE ================= */
+
+const deleteDealer = async (req, res) => {
+  try {
+    await Dealer.findByIdAndDelete(req.params.dealerId);
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ success: false });
+  }
+};
+
+module.exports = {
   createDealer,
   getDealers,
   getDealerById,
   updateDealer,
+  updateDealerStatus,
+  unapproveDealer,
+  reassignDealer,
   deleteDealer
 };
