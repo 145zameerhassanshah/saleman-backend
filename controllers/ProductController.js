@@ -227,15 +227,6 @@ const deleteProduct = async (req,res)=>{
       });
     }
 
-
-    if (product.image) {
-      try {
-        fs.unlinkSync(`uploads/${product.image}`);
-      } catch (err) {
-        console.log("Image not found");
-      }
-    }
-
     await Product.findByIdAndDelete(id);
 
     res.status(200).json({
