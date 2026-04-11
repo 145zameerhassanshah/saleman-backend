@@ -100,20 +100,20 @@ const getDealers = async (req, res) => {
 const getDealerById = async (req, res) => {
   try {
     const dealer = await Dealer.findById(req.params.dealerId)
-      .populate("assigned_to", "name")
-      .populate("created_by", "name")
-        .populate("assignment_history.from", "name")
-  .populate("assignment_history.to", "name")
-  .populate("assignment_history.changed_by", "name");
-
+.populate("assigned_to", "name role")
+.populate("created_by", "name role")
+.populate("assignment_history.from", "name role")
+.populate("assignment_history.to", "name role")
+.populate("assignment_history.changed_by", "name role");
     if (!dealer) return res.status(404).json({ success: false });
 
     // 🔥 SALESMAN SECURITY
-    if (req.user.role === "salesman" &&
-      String(dealer.assigned_to) !== String(req.user.id)) {
-      return res.status(403).json({ success: false, message: "Access denied" });
-    }
-
+if (
+  req.user.role === "salesman" &&
+  String(dealer.assigned_to._id) !== String(req.user.id)
+) {
+  return res.status(403).json({ success: false, message: "Access denied" });
+}
     res.json({ success: true, dealer });
 
   } catch {
@@ -211,13 +211,14 @@ const updateDealerStatus = async (req, res) => {
     dealer.rejectReason = status === "rejected" ? rejectReason : "";
     dealer.updated_by = req.user.id;
 
-    dealer.assignment_history.push({
-      from: dealer.assigned_to,
-      to: dealer.assigned_to,
-      changed_by: req.user.id,
-      note: `Status → ${status}`
-    });
-
+dealer.assignment_history.push({
+  from: dealer.assigned_to,
+  to: dealer.assigned_to,
+  changed_by: req.user.id,
+  note: status === "rejected"
+    ? `Rejected: ${rejectReason}`
+    : `Status → ${status}`
+});
     await dealer.save();
 
     res.json({ success: true });
@@ -262,13 +263,12 @@ const reassignDealer = async (req, res) => {
     const dealer = await Dealer.findById(req.params.id);
     if (!dealer) return res.status(404).json({ success: false });
 
-    dealer.assignment_history.push({
-      from: dealer.assigned_to,
-      to: newSalesmanId,
-      changed_by: req.user.id,
-note: reason?.trim() || "Reassigned"
-    });
-
+dealer.assignment_history.push({
+  from: dealer.assigned_to,
+  to: newSalesmanId,
+  changed_by: req.user.id,
+  note: reason?.trim() || "Reassigned"
+});
     dealer.assigned_to = newSalesmanId;
     dealer.updated_by = req.user.id;
 
