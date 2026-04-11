@@ -18,7 +18,7 @@ router.post(
 
 
 router.get("/:id", getProducts);
-router.get("/:id", getProductById);
+router.get("/single/:id", getProductById);
 
 
 router.patch(

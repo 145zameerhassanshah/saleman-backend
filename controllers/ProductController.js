@@ -66,7 +66,7 @@ const createProduct = async (req, res) => {
       category_id,
       is_active: is_active === "true" || is_active === true,
       businessId: req.params.id,
-      image: req.file.filename
+      image: req.file.path
     });
 
     await product.save();
@@ -191,10 +191,7 @@ const updateProduct = async (req, res) => {
     };
 
     if (req.file) {
-      if (product.image) {
-        try { fs.unlinkSync(`uploads/${product.image}`); } catch { console.log("Old image not found"); }
-      }
-      updateData.image = req.file.filename;
+      updateData.image = req.file.path;
     }
 
     const updated = await Product.findByIdAndUpdate(id, updateData, { new: true });
@@ -228,15 +225,6 @@ const deleteProduct = async (req,res)=>{
         success:false,
         message:"Product not found"
       });
-    }
-
-
-    if (product.image) {
-      try {
-        fs.unlinkSync(`uploads/${product.image}`);
-      } catch (err) {
-        console.log("Image not found");
-      }
     }
 
     await Product.findByIdAndDelete(id);
