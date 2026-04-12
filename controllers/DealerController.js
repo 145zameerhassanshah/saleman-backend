@@ -88,6 +88,7 @@ const getDealers = async (req, res) => {
       .populate("assigned_to", "name")
       .populate("created_by", "name");
 
+
     res.json({ success: true, dealers });
 
   } catch {

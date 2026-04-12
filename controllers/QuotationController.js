@@ -259,6 +259,7 @@ async function update(req, res) {
       notes: req.body.notes,
       discount_type,
       tax_type,
+      dealer_id:req.body.dealer_id,
       subtotal,
       discount: discountAmount,
       tax: taxAmount,
