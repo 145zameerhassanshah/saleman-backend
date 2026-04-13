@@ -3,7 +3,8 @@ const USER_ROLES={
     ADMIN:"admin",
     SALESMAN:"salesman",
     DISPATCHER:"dispatcher",
-    ACCOUNTANT:"accountant"
+    ACCOUNTANT:"accountant",
+    MANAGER:"manager"
 }
 
 module.exports=USER_ROLES

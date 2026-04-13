@@ -50,13 +50,7 @@ async function showAll(req, res) {
       filter.created_by = user.id;
     }
 
-    if (user.role === "dispatcher") {
-      filter.status = "approved"; // 👈 ONLY APPROVED
-    }
 
-    if (user.role === "accountant") {
-      filter.status = "dispatched"; // 👈 ONLY DISPATCHED
-    }
     const quotations = await quotationModel
       .find(filter)
       .populate("businessId") 

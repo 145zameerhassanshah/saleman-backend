@@ -25,6 +25,14 @@ industry: {
     lowercase: true,
     trim: true
   },
+  resetPasswordToken: {
+  type: String,
+  default: null
+},
+resetPasswordExpiry: {
+  type: Date,
+  default: null
+},
 
   phone_number: {
     type: String,

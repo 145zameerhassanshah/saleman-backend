@@ -3,7 +3,8 @@ const {
   orderModel,
   orderItemModel,
   paymentModel,
-  productModel
+  productModel,
+  productCategory
 } = require("../models/exporter");
 
 const puppeteer = require("puppeteer");
@@ -22,7 +23,7 @@ async function getDashboardStats(req, res) {
       filter.createdBy = user.id;
     }
 
-    if (user.role === "dispatcher") {
+    if (user.role === "dispatcher" || user.role === "manager"){
       filter.status = { $in: ["dispatched", "partial"] };
     }
 
@@ -66,7 +67,7 @@ async function showAll(req, res) {
         filter.createdBy = user.id;
       }
   
-      if (user.role === "dispatcher") {
+      if (user.role === "dispatcher"|| user.role === "manager") {
         filter.status = { $in: ["dispatched", "partial","approved"] }; 
       }
   
@@ -199,6 +200,15 @@ async function store(req, res) {
 
   /* CREATE ITEMS */
   for (const item of items) {
+      const category = await productCategory.findById(item.category_id);
+
+  if (!category || category.is_active === false) {
+    return res.status(400).json({
+      success: false,
+      message: "Selected category is inactive"
+    });
+  }
+
     if (!item.product_id || !item.quantity || !item.unit_price) continue;
 
     await orderItemModel.create({
@@ -234,7 +244,7 @@ async function update(req, res) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    if (req.user.role === "dispatcher" || req.user.role === "accountant") {
+    if (req.user.role === "dispatcher" ||req.user.role==="manager" || req.user.role === "accountant") {
       order.status = req.body.status;
       order.deliveryNotes = req.body.deliveryNotes;
       order.updatedBy = req.user.id;

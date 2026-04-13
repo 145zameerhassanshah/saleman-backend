@@ -2,6 +2,7 @@ const AuthService = require("../sevices/authutilties");
 const userModel = require("../models/UserModel");
 const { sendEmail } = require("../utils/email");
 const USER_ROLES = require("../models/userEnum");
+const crypto = require("crypto");
 
 async function createUser(req, res) {
   try {
@@ -197,38 +198,46 @@ async function getLoggedInUser(req, res) {
   }
 }
 
+
 async function forgotPassword(req, res) {
   const { email } = req.body;
+
   try {
     const user = await AuthService.findUser(email);
 
+    // 🔐 security (same response always)
     if (!user) {
-      return res
-        .status(401)
-        .json({ message: "User with this email doesn't exist" });
+      return res.status(200).json({
+        success: true,
+        message: "If this email exists, a reset link has been sent",
+      });
     }
-    const code = AuthService.generateOTP();
-    user.otp = code;
-    user.otpExpiry = Date.now() + 5 * 60 * 1000;
+
+    const token = crypto.randomBytes(32).toString("hex");
+
+    user.resetPasswordToken = token;
+    user.resetPasswordExpiry = Date.now() + 15 * 60 * 1000; // 15 min
 
     await user.save();
 
+    const link = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
+
     await sendEmail(
       email,
-      "Password Reset OTP",
-      `<h2>Your OTP is: ${code}</h2>
-           <p>This OTP will expire in 5 minutes.</p>`,
+      "Reset Password",
+      `<h3>Click below to reset your password:</h3>
+       <a href="${link}">${link}</a>`
     );
 
-    return res
-      .status(200)
-      .json({ message: "Otp sent. Please check your gmail to verify" });
-  } catch (error) {
-    return res.status(500).json({ message: "Something went wrong. Try again" });
-  }
-}
+    return res.status(200).json({
+      success: true,
+      message: "Reset link sent",
+    });
 
-async function verifyOTP(req, res) {
+  } catch (err) {
+    return res.status(500).json({ message: "Server error" });
+  }
+}async function verifyOTP(req, res) {
   try {
     const user = await AuthService.findUser(req.body.email);
 
@@ -248,45 +257,74 @@ async function verifyOTP(req, res) {
 }
 
 async function resetPassword(req, res) {
-  const { email, password } = req.body;
+  const { token, password } = req.body;
+
   try {
-    const user = await AuthService.findUser(email);
+    const user = await userModel.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpiry: { $gt: Date.now() },
+    });
 
     if (!user) {
-      return res.status(401).json({ message: "User not found" });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired link",
+      });
     }
 
     user.password = await AuthService.hashPassword(password);
 
-    user.otp = null;
-    user.otpExpiry = null;
+    user.resetPasswordToken = null;
+    user.resetPasswordExpiry = null;
 
     await user.save();
 
-    return res.status(200).json({ message: "Password reset successfully" });
-  } catch (error) {
-    return res.status(500).json({ message: "Something went wrong. Try again" });
+    return res.status(200).json({
+      success: true,
+      message: "Password reset successfully",
+    });
+
+  } catch (err) {
+    return res.status(500).json({ message: "Server error" });
   }
 }
 async function changePassword(req, res) {
-  const { email, currentPassword, newPassword } = req.body;
   try {
-    const user = await AuthService.findUser(email);
+    const userId = req.user.id;
+
+    const { currentPassword, newPassword } = req.body;
+
+    const user = await userModel.findById(userId);
+
     if (!user) {
-      return res.status(401).json({ message: "User not found" });
+      return res.status(401).json({ success:false, message: "User not found" });
     }
+
     const isMatch = await AuthService.comparePassword(
       currentPassword,
-      user.password,
+      user.password
     );
+
     if (!isMatch) {
-      return res.status(401).json({ message: "Current password is incorrect" });
+      return res.status(401).json({
+        success:false,
+        message: "Current password is incorrect"
+      });
     }
+
     user.password = await AuthService.hashPassword(newPassword);
     await user.save();
-    return res.status(200).json({ message: "Password changed successfully" });
+
+    return res.status(200).json({
+      success:true,
+      message: "Password changed successfully"
+    });
+
   } catch (error) {
-    return res.status(500).json({ message: "Something went wrong. Try again" });
+    return res.status(500).json({
+      success:false,
+      message: "Something went wrong"
+    });
   }
 }
 async function getUsersByIndustry(req, res) {

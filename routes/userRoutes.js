@@ -27,7 +27,7 @@ router.get("/user-profile/:id",authMiddleware,getUser);
 router.post("/verify-user",verifyUser)
 router.get("/auth/logout",authMiddleware,logout);
 router.post("/auth/forgot-password",forgotPassword);
-router.post("/auth/change-password",changePassword);
+router.post("/auth/change-password", authMiddleware, changePassword);
 router.post("/auth/verify-otp",verifyOTP);
 router.post("/auth/reset-password",resetPassword);
 router.get(
