@@ -395,6 +395,7 @@ async function getUser(req, res) {
 async function updateUser(req, res) {
   try {
     const userId = req.params.id;
+
     const user = await userModel.findById(userId);
 
     if (!user) {
@@ -434,22 +435,53 @@ async function updateUser(req, res) {
 
     if (req.body.whatsapp_number)
       user.whatsapp_number = req.body.whatsapp_number;
-    if (req.body.territory) user.territory = req.body.territory;
-    /* ================= PROFILE IMAGE ================= */
 
+    if (req.body.territory) user.territory = req.body.territory;
+
+    /* ================= PASSWORD UPDATE (NEW) ================= */
+    if (req.body.password && req.body.password.trim() !== "") {
+
+      // 🔐 Optional: Only Admin / Super Admin allowed
+      if (
+        req.user.role !== USER_ROLES.ADMIN &&
+        req.user.role !== USER_ROLES.SUPER_ADMIN
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: "Not allowed to change password",
+        });
+      }
+
+      const hashedPassword = await AuthService.hashPassword(req.body.password);
+      user.password = hashedPassword;
+    }
+
+    /* ================= PROFILE IMAGE ================= */
     if (req.file) {
       user.profile_image = req.file.path;
     }
 
     await user.save();
 
+    /* ================= REMOVE SENSITIVE DATA ================= */
+    const updatedUser = user.toObject();
+
+    delete updatedUser.password;
+    delete updatedUser.__v;
+    delete updatedUser.otp;
+    delete updatedUser.otpExpiry;
+    delete updatedUser.resetPasswordToken;
+    delete updatedUser.resetPasswordExpiry;
+
     return res.status(200).json({
       success: true,
       message: "User updated successfully",
-      updatedUser: user,
+      updatedUser,
     });
+
   } catch (error) {
-    console.error(error);
+    console.error("UPDATE USER ERROR:", error);
+
     return res.status(500).json({
       success: false,
       message: "Server error",
@@ -457,6 +489,36 @@ async function updateUser(req, res) {
   }
 }
 
+async function deleteUser(req, res) {
+  try {
+    console.log("🔥 DELETE API HIT");
+console.log("👉 PARAM ID:", req.params.id);
+console.log("👉 USER:", req.user);
+    const userId = req.params.id;
+
+    const user = await userModel.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    await userModel.findByIdAndDelete(userId);
+
+    return res.status(200).json({
+      success: true,
+      message: "User deleted successfully",
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
 module.exports = {
   createUser,
   login,
@@ -471,4 +533,5 @@ module.exports = {
   getUsersByIndustry,
   getSalesmen,
   verifyUser,
+  deleteUser,
 };

@@ -1,4 +1,4 @@
-const {createUser,login,getLoggedInUser,verifyUser,logout,getUser,forgotPassword,verifyOTP,updateUser,resetPassword,changePassword,getUsersByIndustry,getSalesmen}=require("../controllers/UserController");
+const {createUser,login,getLoggedInUser,verifyUser,logout,getUser,forgotPassword,verifyOTP,updateUser,resetPassword,changePassword,getUsersByIndustry,getSalesmen,deleteUser}=require("../controllers/UserController");
 const {Router}=require("express");
 const {authMiddleware,roleMiddleware} = require("../middleware/exporter");
 const { super_admin_seed, admin_seed } = require("../utils/superAdminSeed");
@@ -36,6 +36,12 @@ router.get(
   roleMiddleware(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
   getSalesmen
 );
-router.get("/industry/:industry_id",authMiddleware,roleMiddleware(USER_ROLES.SUPER_ADMIN,USER_ROLES.ADMIN),getUsersByIndustry)
 
+router.get("/industry/:industry_id",authMiddleware,roleMiddleware(USER_ROLES.SUPER_ADMIN,USER_ROLES.ADMIN),getUsersByIndustry)
+router.delete(
+  "/:id",
+  authMiddleware,
+  roleMiddleware(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+  deleteUser
+);
 module.exports=router;
