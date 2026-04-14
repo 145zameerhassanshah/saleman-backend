@@ -11,6 +11,48 @@ const puppeteer = require("puppeteer");
 /* ================================
    INVOICE LIST
 ================================ */
+// async function getDashboardStats(req, res) {
+//   try {
+//     const user = req.user;
+//     const businessId = req.params.id;
+
+//     let filter = { businessId };
+
+//     // 🔥 role-based same logic
+//     if (user.role === "salesman") {
+//       filter.createdBy = user.id;
+//     }
+
+//     if (user.role === "dispatcher" || user.role === "manager"){
+//       filter.status = { $in: ["dispatched", "partial"] };
+//     }
+
+//     if (user.role === "accountant") {
+//       filter.status = { $in: ["dispatched", "partial", "posted"] };
+//     }
+
+//     const totalOrders = await orderModel.countDocuments({ businessId });
+
+//     const activeOrders = await orderModel.countDocuments({
+//       businessId,
+//       status: { $in: ["approved", "active", "partial"] },
+//     });
+
+//     const pendingOrders = await orderModel.countDocuments({
+//       businessId,
+//       status: "unapproved",
+//     });
+
+//     return res.json({
+//       totalOrders,
+//       activeOrders,
+//       pendingOrders,
+//     });
+
+//   } catch (error) {
+//     return res.status(500).json({ message: error.message });
+//   }
+// }
 async function getDashboardStats(req, res) {
   try {
     const user = req.user;
@@ -18,28 +60,31 @@ async function getDashboardStats(req, res) {
 
     let filter = { businessId };
 
-    // 🔥 role-based same logic
+    /* ================= ROLE FILTER ================= */
+
     if (user.role === "salesman") {
       filter.createdBy = user.id;
     }
 
-    if (user.role === "dispatcher" || user.role === "manager"){
-      filter.status = { $in: ["dispatched", "partial"] };
+    if (user.role === "dispatcher" || user.role === "manager") {
+      filter.status = { $in: ["approved"] };
     }
 
     if (user.role === "accountant") {
       filter.status = { $in: ["dispatched", "partial", "posted"] };
     }
 
-    const totalOrders = await orderModel.countDocuments({ businessId });
+    /* ================= COUNTS ================= */
+
+    const totalOrders = await orderModel.countDocuments(filter);
 
     const activeOrders = await orderModel.countDocuments({
-      businessId,
+      ...filter,
       status: { $in: ["approved", "active", "partial"] },
     });
 
     const pendingOrders = await orderModel.countDocuments({
-      businessId,
+      ...filter,
       status: "unapproved",
     });
 
@@ -78,8 +123,8 @@ async function showAll(req, res) {
         .find(filter)
         .populate("dealer_id")
         .populate("businessId", "businessName business_logo addressLogo")
-        .populate("createdBy", "name email user_type")
-        .populate("updatedBy", "name email user_type")
+        .populate("createdBy", "name email role")
+        .populate("updatedBy", "name email role")
         .sort({ createdAt: -1 });
   
       return res.status(200).json({ orders });
