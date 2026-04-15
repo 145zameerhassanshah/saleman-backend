@@ -392,9 +392,107 @@ async function getUser(req, res) {
   }
 }
 
+// async function updateUser(req, res) {
+//   try {
+//     const userId = req.params.id;
+
+//     const user = await userModel.findById(userId);
+
+//     if (!user) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "User not found",
+//       });
+//     }
+
+//     /* ================= EMAIL CHECK ================= */
+//     if (req.body.email && req.body.email !== user.email) {
+//       const emailExist = await userModel.findOne({
+//         email: req.body.email,
+//         _id: { $ne: userId },
+//       });
+
+//       if (emailExist) {
+//         return res.status(400).json({
+//           success: false,
+//           message: "Email already in use",
+//         });
+//       }
+//     }
+
+//     /* ================= UPDATE FIELDS ================= */
+
+//     if (req.body.name) user.name = req.body.name;
+//     if (req.body.email) user.email = req.body.email;
+
+//     if (req.body.status) user.status = req.body.status;
+
+//     if (req.body.designation) user.designation = req.body.designation;
+//     if (req.body.address) user.address = req.body.address;
+
+//     if (req.body.city) user.city = req.body.city;
+//     if (req.body.phone_number) user.phone_number = req.body.phone_number;
+
+//     if (req.body.whatsapp_number)
+//       user.whatsapp_number = req.body.whatsapp_number;
+
+//     if (req.body.territory) user.territory = req.body.territory;
+
+//     /* ================= PASSWORD UPDATE (NEW) ================= */
+//     if (req.body.password && req.body.password.trim() !== "") {
+
+//       // 🔐 Optional: Only Admin / Super Admin allowed
+//       if (
+//         req.user.role !== USER_ROLES.ADMIN &&
+//         req.user.role !== USER_ROLES.SUPER_ADMIN
+//       ) {
+//         return res.status(403).json({
+//           success: false,
+//           message: "Not allowed to change password",
+//         });
+//       }
+
+//       const hashedPassword = await AuthService.hashPassword(req.body.password);
+//       user.password = hashedPassword;
+//     }
+
+//     /* ================= PROFILE IMAGE ================= */
+//     if (req.file) {
+//       user.profile_image = req.file.path;
+//     }
+
+//     await user.save();
+
+//     /* ================= REMOVE SENSITIVE DATA ================= */
+//     const updatedUser = user.toObject();
+
+//     delete updatedUser.password;
+//     delete updatedUser.__v;
+//     delete updatedUser.otp;
+//     delete updatedUser.otpExpiry;
+//     delete updatedUser.resetPasswordToken;
+//     delete updatedUser.resetPasswordExpiry;
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "User updated successfully",
+//       updatedUser,
+//     });
+
+//   } catch (error) {
+//     console.error("UPDATE USER ERROR:", error);
+
+//     return res.status(500).json({
+//       success: false,
+//       message: "Server error",
+//     });
+//   }
+// }
 async function updateUser(req, res) {
   try {
     const userId = req.params.id;
+    const currentUser = req.user;
+
     const user = await userModel.findById(userId);
 
     if (!user) {
@@ -404,7 +502,47 @@ async function updateUser(req, res) {
       });
     }
 
+    const isAdmin =
+      currentUser.role === "admin" ||
+      currentUser.role === "super_admin";
+
+    const isOwnProfile = String(currentUser.id) === String(userId);
+
+    /* ================= ACCESS CONTROL ================= */
+
+    // ❌ non-admin cannot edit others
+    if (!isAdmin && !isOwnProfile) {
+      return res.status(403).json({
+        success: false,
+        message: "Not allowed to update this user",
+      });
+    }
+
+    /* ================= NON ADMIN RESTRICTION ================= */
+
+    if (!isAdmin) {
+      // 🔒 ONLY PROFILE IMAGE ALLOWED
+      if (
+        req.body.name ||
+        req.body.email ||
+        req.body.password ||
+        req.body.status ||
+        req.body.designation ||
+        req.body.address ||
+        req.body.city ||
+        req.body.phone_number ||
+        req.body.whatsapp_number ||
+        req.body.territory
+      ) {
+        return res.status(200).json({
+          success: true,
+          message: "You can only update profile image",
+        });
+      }
+    }
+
     /* ================= EMAIL CHECK ================= */
+
     if (req.body.email && req.body.email !== user.email) {
       const emailExist = await userModel.findOne({
         email: req.body.email,
@@ -419,23 +557,28 @@ async function updateUser(req, res) {
       }
     }
 
-    /* ================= UPDATE FIELDS ================= */
+    /* ================= UPDATE FIELDS (ADMIN ONLY) ================= */
 
-    if (req.body.name) user.name = req.body.name;
-    if (req.body.email) user.email = req.body.email;
+    if (isAdmin) {
+      if (req.body.name) user.name = req.body.name;
+      if (req.body.email) user.email = req.body.email;
 
-    if (req.body.status) user.status = req.body.status;
+      if (req.body.status) user.status = req.body.status;
+      if (req.body.designation) user.designation = req.body.designation;
+      if (req.body.address) user.address = req.body.address;
+      if (req.body.city) user.city = req.body.city;
+      if (req.body.phone_number) user.phone_number = req.body.phone_number;
+      if (req.body.whatsapp_number)
+        user.whatsapp_number = req.body.whatsapp_number;
+      if (req.body.territory) user.territory = req.body.territory;
 
-    if (req.body.designation) user.designation = req.body.designation;
-    if (req.body.address) user.address = req.body.address;
+      /* 🔐 PASSWORD */
+      if (req.body.password && req.body.password.trim() !== "") {
+        user.password = await AuthService.hashPassword(req.body.password);
+      }
+    }
 
-    if (req.body.city) user.city = req.body.city;
-    if (req.body.phone_number) user.phone_number = req.body.phone_number;
-
-    if (req.body.whatsapp_number)
-      user.whatsapp_number = req.body.whatsapp_number;
-    if (req.body.territory) user.territory = req.body.territory;
-    /* ================= PROFILE IMAGE ================= */
+    /* ================= PROFILE IMAGE (ALL USERS) ================= */
 
     if (req.file) {
       user.profile_image = req.file.path;
@@ -443,20 +586,59 @@ async function updateUser(req, res) {
 
     await user.save();
 
+    /* ================= CLEAN RESPONSE ================= */
+
+    const updatedUser = user.toObject();
+
+    delete updatedUser.password;
+    delete updatedUser.__v;
+    delete updatedUser.otp;
+    delete updatedUser.otpExpiry;
+    delete updatedUser.resetPasswordToken;
+    delete updatedUser.resetPasswordExpiry;
+
     return res.status(200).json({
       success: true,
       message: "User updated successfully",
-      updatedUser: user,
+      updatedUser,
     });
+
   } catch (error) {
-    console.error(error);
+    console.error("UPDATE USER ERROR:", error);
+
     return res.status(500).json({
       success: false,
       message: "Server error",
     });
   }
 }
+async function deleteUser(req, res) {
+  try {
+    const userId = req.params.id;
 
+    const user = await userModel.findById(userId);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    await userModel.findByIdAndDelete(userId);
+
+    return res.status(200).json({
+      success: true,
+      message: "User deleted successfully",
+    });
+
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+}
 module.exports = {
   createUser,
   login,
@@ -471,4 +653,5 @@ module.exports = {
   getUsersByIndustry,
   getSalesmen,
   verifyUser,
+  deleteUser,
 };
