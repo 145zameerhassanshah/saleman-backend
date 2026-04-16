@@ -254,7 +254,7 @@ async function store(req, res) {
     });
   }
 
-    if (!item.product_id || !item.quantity || !item.unit_price) continue;
+   if ((!item.product_id && !item.item_name) || !item.quantity || !item.unit_price) continue;
 
     await orderItemModel.create({
       order_id: order._id,
@@ -289,7 +289,7 @@ async function update(req, res) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    if (req.user.role === "dispatcher" ||req.user.role==="manager" || req.user.role === "accountant") {
+    if (req.user.role === "dispatcher" ||req.user.role==="manager" || req.user.role === "accountant" || req.user.role==="admin") {
       order.status = req.body.status;
       order.deliveryNotes = req.body.deliveryNotes;
       order.updatedBy = req.user.id;
@@ -433,45 +433,38 @@ async function updateOrderStatus (req, res){
 ================================ */
 
 async function remove(req, res) {
-
   try {
-
     const id = req.params.id;
+    const role = req.user.role;
 
-    const order = await orderModel.findOne({ _id: id, status: "unapproved" });
+    let order;
+
+    if (role === "admin") {
+      // Admin can delete approved, unapproved, rejected
+      order = await orderModel.findOne({
+        _id: id,
+        status: { $in: ["unapproved", "approved", "rejected"] }
+      });
+    } else {
+      // Salesman can only delete own unapproved
+      order = await orderModel.findOne({ _id: id, status: "unapproved" });
+    }
 
     if (!order) {
       return res.status(400).json({
-        message: "Order not found or is activated by director"
+        success: false,
+        message: "Order not found or cannot be deleted"
       });
     }
-
-    // const payments = await paymentModel.find({ order_id: id });
-
-    // if (payments.length > 0) {
-    //   return res.status(400).json({
-    //     success:false,
-    //     message: "Order has payments and cannot be deleted"
-    //   });
-    // }
 
     await orderModel.findByIdAndDelete(id);
     await orderItemModel.deleteMany({ order_id: id });
 
-    return res.status(200).json({
-      success:true,
-      message: "Oder deleted successfully"
-    });
+    return res.status(200).json({ success: true, message: "Order deleted successfully" });
 
   } catch (error) {
-
-    return res.status(500).json({
-      success:false,
-      message: "Something went wrong"
-    });
-
+    return res.status(500).json({ success: false, message: "Something went wrong" });
   }
-
 }
 
 

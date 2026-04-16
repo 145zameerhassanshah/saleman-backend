@@ -103,14 +103,21 @@ async function create(req, res) {
     const preparedItems = [];
 
     for (const item of items) {
-      const product = await productModel.findOne({
-        _id: item.product_id,
-        category_id: item.category_id,
-      });
+     let product = null;
 
-      if (!product) {
-        return res.status(404).json({ message: "Product not found" });
-      }
+if (item.product_id) {
+  product = await productModel.findOne({
+    _id: item.product_id,
+    category_id: item.category_id,
+  });
+
+  if (!product) {
+    return res.status(404).json({ message: "Product not found" });
+  }
+}
+
+// ✅ fallback for manual entry
+const itemName = product?.name || item.item_name;
 
       const qty = Number(item.quantity);
       const price = Number(item.unit_price);
@@ -128,7 +135,7 @@ subtotal += itemTotal;
      preparedItems.push({
   product_id: item.product_id,
   category_id: item.category_id,
-  item_name: product.name,
+  item_name: itemName,
   quantity: qty,
   unit_price: price,
   discount_percent: disc,
