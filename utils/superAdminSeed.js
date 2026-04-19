@@ -6,7 +6,7 @@ async function super_admin_seed(){
     const hashPassword=await AuthService.hashPassword("Admin@123");
     const superAdmin={
     name:"Sohaib",
-    email:"sohaib123@gmail.com",
+    email:"zameerhassanshah69@gmail.com",
     phone_number:"03060624288",
     whatsapp_number:"03060624288",
     city:"Gujranwala",

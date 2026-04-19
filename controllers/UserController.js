@@ -391,9 +391,13 @@ async function getUser(req, res) {
   }
 }
 
+
+
+
 // async function updateUser(req, res) {
 //   try {
 //     const userId = req.params.id;
+//     const currentUser = req.user;
 
 //     const user = await userModel.findById(userId);
 
@@ -404,7 +408,47 @@ async function getUser(req, res) {
 //       });
 //     }
 
+//     const isAdmin =
+//       currentUser.role === "admin" ||
+//       currentUser.role === "super_admin";
+
+//     const isOwnProfile = String(currentUser.id) === String(userId);
+
+//     /* ================= ACCESS CONTROL ================= */
+
+//     // ❌ non-admin cannot edit others
+//     if (!isAdmin && !isOwnProfile) {
+//       return res.status(403).json({
+//         success: false,
+//         message: "Not allowed to update this user",
+//       });
+//     }
+
+//     /* ================= NON ADMIN RESTRICTION ================= */
+
+//     if (!isAdmin) {
+//       // 🔒 ONLY PROFILE IMAGE ALLOWED
+//       if (
+//         req.body.name ||
+//         req.body.email ||
+//         req.body.password ||
+//         req.body.status ||
+//         req.body.designation ||
+//         req.body.address ||
+//         req.body.city ||
+//         req.body.phone_number ||
+//         req.body.whatsapp_number ||
+//         req.body.territory
+//       ) {
+//         return res.status(200).json({
+//           success: true,
+//           message: "You can only update profile image",
+//         });
+//       }
+//     }
+
 //     /* ================= EMAIL CHECK ================= */
+
 //     if (req.body.email && req.body.email !== user.email) {
 //       const emailExist = await userModel.findOne({
 //         email: req.body.email,
@@ -419,50 +463,37 @@ async function getUser(req, res) {
 //       }
 //     }
 
-//     /* ================= UPDATE FIELDS ================= */
+//     /* ================= UPDATE FIELDS (ADMIN ONLY) ================= */
 
-//     if (req.body.name) user.name = req.body.name;
-//     if (req.body.email) user.email = req.body.email;
+//     if (isAdmin) {
+//       if (req.body.name) user.name = req.body.name;
+//       if (req.body.email) user.email = req.body.email;
 
-//     if (req.body.status) user.status = req.body.status;
+//       if (req.body.status) user.status = req.body.status;
+//       if (req.body.designation) user.designation = req.body.designation;
+//       if (req.body.address) user.address = req.body.address;
+//       if (req.body.city) user.city = req.body.city;
+//       if (req.body.phone_number) user.phone_number = req.body.phone_number;
+//       if (req.body.whatsapp_number)
+//         user.whatsapp_number = req.body.whatsapp_number;
+//       if (req.body.territory) user.territory = req.body.territory;
 
-//     if (req.body.designation) user.designation = req.body.designation;
-//     if (req.body.address) user.address = req.body.address;
-
-//     if (req.body.city) user.city = req.body.city;
-//     if (req.body.phone_number) user.phone_number = req.body.phone_number;
-
-//     if (req.body.whatsapp_number)
-//       user.whatsapp_number = req.body.whatsapp_number;
-
-//     if (req.body.territory) user.territory = req.body.territory;
-
-//     /* ================= PASSWORD UPDATE (NEW) ================= */
-//     if (req.body.password && req.body.password.trim() !== "") {
-
-//       // 🔐 Optional: Only Admin / Super Admin allowed
-//       if (
-//         req.user.role !== USER_ROLES.ADMIN &&
-//         req.user.role !== USER_ROLES.SUPER_ADMIN
-//       ) {
-//         return res.status(403).json({
-//           success: false,
-//           message: "Not allowed to change password",
-//         });
+//       /* 🔐 PASSWORD */
+//       if (req.body.password && req.body.password.trim() !== "") {
+//         user.password = await AuthService.hashPassword(req.body.password);
 //       }
-
-//       const hashedPassword = await AuthService.hashPassword(req.body.password);
-//       user.password = hashedPassword;
 //     }
 
-//     /* ================= PROFILE IMAGE ================= */
+//     /* ================= PROFILE IMAGE (ALL USERS) ================= */
+
 //     if (req.file) {
 //       user.profile_image = req.file.path;
 //     }
 
 //     await user.save();
 
-//     /* ================= REMOVE SENSITIVE DATA ================= */
+//     /* ================= CLEAN RESPONSE ================= */
+
 //     const updatedUser = user.toObject();
 
 //     delete updatedUser.password;
@@ -487,6 +518,7 @@ async function getUser(req, res) {
 //     });
 //   }
 // }
+
 async function updateUser(req, res) {
   try {
     const userId = req.params.id;
@@ -505,105 +537,95 @@ async function updateUser(req, res) {
       currentUser.role === "admin" ||
       currentUser.role === "super_admin";
 
+    const isSuperAdmin = currentUser.role === "super_admin";
+
     const isOwnProfile = String(currentUser.id) === String(userId);
 
-    /* ================= ACCESS CONTROL ================= */
-
-    // ❌ non-admin cannot edit others
-    if (!isAdmin && !isOwnProfile) {
-      return res.status(403).json({
-        success: false,
-        message: "Not allowed to update this user",
-      });
-    }
-
-    /* ================= NON ADMIN RESTRICTION ================= */
+    /* ================= TEAM USER ================= */
 
     if (!isAdmin) {
-      // 🔒 ONLY PROFILE IMAGE ALLOWED
+      if (!isOwnProfile) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only edit your own profile",
+        });
+      }
+
+      // team → only image
       if (
         req.body.name ||
         req.body.email ||
         req.body.password ||
-        req.body.status ||
-        req.body.designation ||
-        req.body.address ||
         req.body.city ||
+        req.body.address ||
         req.body.phone_number ||
-        req.body.whatsapp_number ||
-        req.body.territory
+        req.body.whatsapp_number
       ) {
-        return res.status(200).json({
-          success: true,
+        return res.status(403).json({
+          success: false,
           message: "You can only update profile image",
         });
       }
+
+      if (req.file) {
+        user.profile_image = req.file.filename;
+        await user.save();
+
+        return res.status(200).json({
+          success: true,
+          message: "Profile image updated",
+        });
+      }
+
+      return res.status(400).json({
+        success: false,
+        message: "No image provided",
+      });
     }
 
-    /* ================= EMAIL CHECK ================= */
+    /* ================= ADMIN / SUPER ADMIN ================= */
 
-    if (req.body.email && req.body.email !== user.email) {
-      const emailExist = await userModel.findOne({
-        email: req.body.email,
-        _id: { $ne: userId },
-      });
-
-      if (emailExist) {
-        return res.status(400).json({
+    // ❌ admin cannot edit other admins
+    if (!isSuperAdmin && !isOwnProfile) {
+      if (
+        user.user_type === "admin" ||
+        user.user_type === "super_admin"
+      ) {
+        return res.status(403).json({
           success: false,
-          message: "Email already in use",
+          message: "Admin can only edit team users",
         });
       }
     }
 
-    /* ================= UPDATE FIELDS (ADMIN ONLY) ================= */
+    // ✔ admin can edit own profile ALWAYS
+    // ✔ super admin can edit everyone
 
-    if (isAdmin) {
-      if (req.body.name) user.name = req.body.name;
-      if (req.body.email) user.email = req.body.email;
+    if (req.body.name) user.name = req.body.name;
+    if (req.body.email) user.email = req.body.email;
+    if (req.body.city) user.city = req.body.city;
+    if (req.body.address) user.address = req.body.address;
+    if (req.body.phone_number) user.phone_number = req.body.phone_number;
+    if (req.body.whatsapp_number)
+      user.whatsapp_number = req.body.whatsapp_number;
 
-      if (req.body.status) user.status = req.body.status;
-      if (req.body.designation) user.designation = req.body.designation;
-      if (req.body.address) user.address = req.body.address;
-      if (req.body.city) user.city = req.body.city;
-      if (req.body.phone_number) user.phone_number = req.body.phone_number;
-      if (req.body.whatsapp_number)
-        user.whatsapp_number = req.body.whatsapp_number;
-      if (req.body.territory) user.territory = req.body.territory;
-
-      /* 🔐 PASSWORD */
-      if (req.body.password && req.body.password.trim() !== "") {
-        user.password = await AuthService.hashPassword(req.body.password);
-      }
+    if (req.body.password && req.body.password.trim() !== "") {
+      user.password = await AuthService.hashPassword(req.body.password);
     }
 
-    /* ================= PROFILE IMAGE (ALL USERS) ================= */
-
     if (req.file) {
-      user.profile_image = req.file.path;
+      user.profile_image = req.file.filename;
     }
 
     await user.save();
 
-    /* ================= CLEAN RESPONSE ================= */
-
-    const updatedUser = user.toObject();
-
-    delete updatedUser.password;
-    delete updatedUser.__v;
-    delete updatedUser.otp;
-    delete updatedUser.otpExpiry;
-    delete updatedUser.resetPasswordToken;
-    delete updatedUser.resetPasswordExpiry;
-
     return res.status(200).json({
       success: true,
       message: "User updated successfully",
-      updatedUser,
     });
 
   } catch (error) {
-    console.error("UPDATE USER ERROR:", error);
+    console.error("UPDATE ERROR:", error);
 
     return res.status(500).json({
       success: false,
@@ -611,9 +633,41 @@ async function updateUser(req, res) {
     });
   }
 }
+
+// async function deleteUser(req, res) {
+//   try {
+//     const userId = req.params.id;
+
+//     const user = await userModel.findById(userId);
+
+//     if (!user) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "User not found",
+//       });
+//     }
+
+//     await userModel.findByIdAndDelete(userId);
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "User deleted successfully",
+//     });
+
+//   } catch (err) {
+//     return res.status(500).json({
+//       success: false,
+//       message: "Server error",
+//     });
+//   }
+// }
+
+
+
 async function deleteUser(req, res) {
   try {
     const userId = req.params.id;
+    const currentUser = req.user;
 
     const user = await userModel.findById(userId);
 
@@ -624,14 +678,65 @@ async function deleteUser(req, res) {
       });
     }
 
-    await userModel.findByIdAndDelete(userId);
+    const isSuperAdmin = currentUser.role === "super_admin";
+    const isAdmin = currentUser.role === "admin";
 
-    return res.status(200).json({
-      success: true,
-      message: "User deleted successfully",
+    /* ❌ NO ONE CAN DELETE THEMSELVES */
+    if (String(currentUser.id) === String(userId)) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot delete yourself",
+      });
+    }
+
+    /* ================= SUPER ADMIN ================= */
+    if (isSuperAdmin) {
+      // ✔ can delete anyone except another super admin
+      if (user.user_type === "super_admin") {
+        return res.status(403).json({
+          success: false,
+          message: "Cannot delete another super admin",
+        });
+      }
+
+      await userModel.findByIdAndDelete(userId);
+
+      return res.status(200).json({
+        success: true,
+        message: "User deleted by Super Admin",
+      });
+    }
+
+    /* ================= ADMIN ================= */
+    if (isAdmin) {
+      // ❌ admin cannot delete admin or super admin
+      if (
+        user.user_type === "admin" ||
+        user.user_type === "super_admin"
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: "Admin can only delete team users",
+        });
+      }
+
+      await userModel.findByIdAndDelete(userId);
+
+      return res.status(200).json({
+        success: true,
+        message: "User deleted by Admin",
+      });
+    }
+
+    /* ================= TEAM USER ================= */
+    return res.status(403).json({
+      success: false,
+      message: "Not allowed to delete users",
     });
 
   } catch (err) {
+    console.error("DELETE ERROR:", err);
+
     return res.status(500).json({
       success: false,
       message: "Server error",
