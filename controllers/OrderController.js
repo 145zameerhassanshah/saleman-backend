@@ -630,6 +630,7 @@ const formattedItems = items.map((item) => ({
   discount_percent: item.discount_percent,
   total: item.total
 }));
+
     return res.status(200).json({
       success: true,
       order,
