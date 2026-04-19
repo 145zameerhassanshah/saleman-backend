@@ -5,7 +5,7 @@ const USER_ROLES = require("../models/userEnum");
 const crypto = require("crypto");
 
 async function createUser(req, res) {
-  try {
+  // try {
     const { email, phone_number, whatsapp_number } = req.body;
     /* ================= EMAIL CHECK ================= */
 
@@ -51,20 +51,19 @@ async function createUser(req, res) {
       password: hashPassword,
       profile_image, // ✅ added
     });
-
     await newUser.save();
 
     return res.status(201).json({
       success: true,
       message: `${req.body.user_type} created successfully`,
     });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
-  }
+  // } catch (error) {
+  //   console.error(error);
+  //   return res.status(500).json({
+  //     success: false,
+  //     message: "Server error",
+  //   });
+  // }
 }
 
 const getSalesmen = async (req, res) => {

@@ -183,12 +183,13 @@ async function store(req, res) {
     payment_term 
   } = req.body;
 
+  console.log(req.body);
+
   // ✅ Parse all numeric fields explicitly
   const discount = Number(req.body.discount) || 0;
   const tax = Number(req.body.tax) || 0;
 
   const items = req.body.items || [];
-
   const orderNumber = await generateOrderNumber();
 
   /* SUBTOTAL */
@@ -254,20 +255,20 @@ async function store(req, res) {
     });
   }
 
-   if ((!item.product_id && !item.item_name) || !item.quantity || !item.unit_price) continue;
-
+   if (!item.item_name || !item.quantity || !item.unit_price) continue;
     await orderItemModel.create({
-      order_id: order._id,
-      item_name: item.item_name,
-      product_id: item.product_id,
-      quantity: Number(item.quantity),
-      unit_price: Number(item.unit_price),
-      discount_percent: Number(item.discount_percent) || 0,
-     total:
-  item.discount_type === "percent"
-    ? Number(item.quantity) * Number(item.unit_price) * (1 - (Number(item.discount_percent) || 0) / 100)
-    : Number(item.quantity) * Number(item.unit_price) - (Number(item.discount_percent) || 0)
-    });
+  order_id: order._id,
+  category_id: item.category_id || null,  // ✅ save it
+  item_name: item.item_name,
+  product_id: item.product_id || null,
+  quantity: Number(item.quantity),
+  unit_price: Number(item.unit_price),
+  discount_percent: Number(item.discount_percent) || 0,
+  total:
+    item.discount_type === "percent"
+      ? Number(item.quantity) * Number(item.unit_price) * (1 - (Number(item.discount_percent) || 0) / 100)
+      : Number(item.quantity) * Number(item.unit_price) - (Number(item.discount_percent) || 0)
+});
   }
 
   return res.status(201).json({
@@ -289,7 +290,8 @@ async function update(req, res) {
       return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    if (req.user.role === "dispatcher" ||req.user.role==="manager" || req.user.role === "accountant" || req.user.role==="admin") {
+    // ✅ DISPATCHER / MANAGER → status + deliveryNotes only
+    if (req.user.role === "dispatcher" || req.user.role === "manager") {
       order.status = req.body.status;
       order.deliveryNotes = req.body.deliveryNotes;
       order.updatedBy = req.user.id;
@@ -297,9 +299,20 @@ async function update(req, res) {
       return res.json({ success: true, message: "Order updated successfully" });
     }
 
-    if(req.user.role==="salesman"){
-      order.status="unapproved"
+    // ✅ ACCOUNTANT → status + payment_term only
+    if (req.user.role === "accountant") {
+      order.status = req.body.status;
+      order.payment_term = req.body.payment_term;
+      order.updatedBy = req.user.id;
+      await order.save();
+      return res.json({ success: true, message: "Order updated successfully" });
     }
+
+    // ✅ ADMIN + SALESMAN → full edit
+    if (req.user.role === "salesman") {
+      order.status = "unapproved";
+    }
+
     const {
       dealer_id,
       order_date,
@@ -308,16 +321,13 @@ async function update(req, res) {
       tax_type,
       notes,
       payment_term,
+      status,
     } = req.body;
 
     const items = req.body.items || [];
 
-    // ✅ subtotal from items (item-level discounts already applied in item.total)
-    const subtotal = items.reduce((sum, i) => {
-      return sum + (Number(i.total) || 0);
-    }, 0);
+    const subtotal = items.reduce((sum, i) => sum + (Number(i.total) || 0), 0);
 
-    // ✅ discount & tax come as RAW user input (rate or amount), recalculate here
     const discountInput = Number(req.body.discount) || 0;
     const taxInput = Number(req.body.tax) || 0;
 
@@ -346,17 +356,19 @@ async function update(req, res) {
       total,
       notes,
       payment_term,
+      // ✅ admin can also update status directly via edit modal
+      ...(req.user.role === "admin" && status ? { status } : {}),
     });
-    await order.save();
 
     await orderItemModel.deleteMany({ order_id: id });
 
     for (const item of items) {
-      if (!item.product_id || !item.quantity || !item.unit_price) continue;
+      if ((!item.product_id && !item.item_name) || !item.quantity || !item.unit_price) continue;
 
       await orderItemModel.create({
         order_id: id,
-        product_id: item.product_id?._id || item.product_id,
+        category_id: item.category_id || null,
+        product_id: item.product_id?._id || item.product_id || null,
         quantity: Number(item.quantity),
         item_name: item.item_name,
         unit_price: Number(item.unit_price),
@@ -368,7 +380,7 @@ async function update(req, res) {
     return res.status(200).json({ success: true, message: "Order updated successfully" });
 
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Something went wrong" });
+    return res.status(500).json({ success: false, message: error.message });
   }
 }
 
@@ -603,33 +615,21 @@ const order = await orderModel
 
     /* ================= ITEMS ================= */
     const items = await orderItemModel
-      .find({ order_id: id })
-      .populate({
-        path: "product_id",
-        populate: {
-          path: "category_id",
-          select: "_id name"
-        }
-      });
+  .find({ order_id: id })
+  .populate("product_id")
+  .populate("category_id", "_id name");  // ✅ populate directly
 
-    /* ================= FORMAT ITEMS ================= */
 const formattedItems = items.map((item) => ({
   _id: item._id,
-
-  category_id: item.product_id?.category_id?._id || "",
-
-  product_id: item.product_id || null, // ✅ FIXED
-
+  category_id: item.category_id?._id || item.category_id || "",  // ✅ from item, not from product
+  product_id: item.product_id || null,
   product_name: item.product_id?.name || "",
-
   item_name: item.item_name,
-
   quantity: item.quantity,
   unit_price: item.unit_price,
   discount_percent: item.discount_percent,
-
   total: item.total
-}));    /* ================= RESPONSE ================= */
+}));
     return res.status(200).json({
       success: true,
       order,
