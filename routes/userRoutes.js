@@ -21,7 +21,7 @@ router.get("/admin",async (_,res)=>{
 })
 router.post("/create-user",authMiddleware,roleMiddleware(USER_ROLES.SUPER_ADMIN,USER_ROLES.ADMIN),upload.single("profile_image"),createUser);
 router.post("/auth/login",login);
-router.patch("/update/:id", authMiddleware,roleMiddleware(USER_ROLES.ADMIN), upload.single("profile_image"), updateUser);
+router.patch("/update/:id", authMiddleware,roleMiddleware(USER_ROLES.SUPER_ADMIN,USER_ROLES.ADMIN), upload.single("profile_image"), updateUser);
 router.get("/me",authMiddleware,getLoggedInUser);
 router.get("/user-profile/:id",authMiddleware,getUser);
 router.post("/verify-user",verifyUser)
