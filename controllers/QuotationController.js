@@ -56,7 +56,7 @@ async function showAll(req, res) {
       .populate("businessId") 
       .populate("dealer_id")
       .populate("created_by", "name email user_type")
-      .populate("updated_by", "name email user_type");
+      .populate("updated_by", "name email user_type").sort({ createdAt: -1 });;
 
     return res.status(200).json({ quotations });
 

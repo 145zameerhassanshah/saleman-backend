@@ -333,7 +333,7 @@ async function getUsersByIndustry(req, res) {
       .find({ industry: industryId })
       .select(
         "-password -__v -email_verified_at -email_verification_token -blocked_until -block_reason -reject_reason -approved_by",
-      );
+      ).sort({ createdAt: -1 });;
 
     if (!userByIndustry)
       return res
