@@ -7,6 +7,11 @@ const quotationItemSchema = new mongoose.Schema({
     ref: "Quotation",
     required: true
   },
+   category_id: {
+    type: mongoose.Schema.Types.ObjectId,  // ✅ ADD THIS
+    ref: "Category",
+    default: null
+  },
 
   product_id: {
     type: mongoose.Schema.Types.ObjectId,

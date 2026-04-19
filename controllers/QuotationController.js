@@ -270,19 +270,20 @@ async function update(req, res) {
 
     await quotationItem.deleteMany({ quotation_id: id });
 
-    // ✅ preparedItems now actually populated
-    for (const item of items) {
-      await quotationItem.create({
-        quotation_id: id,
-        product_id: item.product_id,
-        category_id: item.category_id,
-        item_name: item.item_name,
-        quantity: Number(item.quantity),
-        unit_price: Number(item.unit_price),
-        discount_percent: Number(item.discount_percent) || 0,
-        total: Number(item.total),
-      });
-    }
+for (const item of items) {
+  if ((!item.product_id && !item.item_name) || !item.quantity || !item.unit_price) continue;
+
+  await quotationItem.create({
+    quotation_id: id,
+    product_id: item.product_id || null,        // ✅ null for General
+    category_id: item.category_id || null,      // ✅ always save
+    item_name: item.item_name,
+    quantity: Number(item.quantity),
+    unit_price: Number(item.unit_price),
+    discount_percent: Number(item.discount_percent) || 0,
+    total: Number(item.total),
+  });
+}
 
     return res.json({ success: true, message: "Quotation updated successfully" });
 
@@ -369,32 +370,35 @@ async function getQuotationById(req, res) {
   try {
     const quotation = await quotationModel
       .findById(req.params.id)
-      .populate("businessId") 
+      .populate("businessId")
       .populate("dealer_id")
       .populate("created_by", "name email user_type")
       .populate("updated_by", "name email user_type");
 
-if (!quotation?.businessId) {
-  return res.status(400).json({
-    message: "Business data missing (logo issue)",
-  });
+    if (!quotation?.businessId) {
+      return res.status(400).json({ message: "Business data missing (logo issue)" });
     }
 
     const items = await quotationItem
       .find({ quotation_id: req.params.id })
-      .populate("product_id");
+      .populate("product_id")
+      .populate("category_id", "_id name");  // ✅ populate directly
 
-    return res.status(200).json({
-      success: true,
-      quotation,
-      items,
-    });
+    const formattedItems = items.map((item) => ({
+      _id: item._id,
+      category_id: item.category_id?._id || item.category_id || "",  // ✅ from item directly
+      product_id: item.product_id?._id || item.product_id || null,
+      item_name: item.item_name,
+      quantity: item.quantity,
+      unit_price: item.unit_price,
+      discount_percent: item.discount_percent,
+      total: item.total,
+    }));
+
+    return res.status(200).json({ success: true, quotation, items: formattedItems });
 
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Something went wrong",
-    });
+    return res.status(500).json({ success: false, message: "Something went wrong" });
   }
 }
 async function updateQuotationStatus (req, res){
