@@ -416,7 +416,6 @@ async function updateQuotationStatus (req, res){
     }
 
     const quotation = await quotationModel.findById(id);
-
     if (!quotation) {
       return res.status(404).json({
         success: false,
@@ -424,15 +423,8 @@ async function updateQuotationStatus (req, res){
       });
     }
 
-    if (quotation.status !== "pending") {
-      return res.status(400).json({
-        success: false,
-        message: "Only unapproved orders can be updated",
-      });
-    }
-
     quotation.status = status;
-    await quotation?.save();
+    await quotation.save();
 
     return res.status(200).json({
       success: true,

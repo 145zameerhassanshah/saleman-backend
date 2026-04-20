@@ -182,9 +182,6 @@ async function store(req, res) {
     deliveryNotes,
     payment_term 
   } = req.body;
-
-  console.log(req.body);
-
   // ✅ Parse all numeric fields explicitly
   const discount = Number(req.body.discount) || 0;
   const tax = Number(req.body.tax) || 0;
@@ -276,10 +273,6 @@ async function store(req, res) {
     order
   });
 }
-
-/* ================================
-   UPDATE INVOICE
-================================ */
 
 async function update(req, res) {
   try {
