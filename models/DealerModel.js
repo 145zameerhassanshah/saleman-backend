@@ -35,7 +35,11 @@ const DealerSchema = new mongoose.Schema({
     required: true
   },
 
-  business_logo: String,
+business_logo: {
+    type: String,
+    required: true
+  },
+  
 
   billing_address: String,
   shipping_address: String,

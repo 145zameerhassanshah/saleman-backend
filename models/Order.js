@@ -1,3 +1,88 @@
+// const mongoose = require("mongoose");
+
+// const orderItemSchema = new mongoose.Schema(
+//   {
+//     order_id: {
+//       type: mongoose.Schema.Types.ObjectId,
+//       ref: "Order",
+//       required: true,
+//       index: true,
+//     },
+
+//     category_id: {
+//       type: mongoose.Schema.Types.ObjectId,
+//       ref: "Category",
+//       default: null,
+//       index: true,
+//     },
+
+//     product_id: {
+//       type: mongoose.Schema.Types.ObjectId,
+//       ref: "Product",
+//       default: null,
+//       index: true,
+//     },
+
+//     item_name: {
+//       type: String,
+//       required: true,
+//       trim: true,
+//     },
+
+//     description: {
+//       type: String,
+//       default: null,
+//     },
+
+//     unit_price: {
+//       type: Number,
+//       required: true,
+//       default: 0,
+//     },
+
+//     quantity: {
+//       type: Number,
+//       required: true,
+//       default: 1,
+//     },
+
+//     discount_percent: {
+//       type: Number,
+//       default: 0,
+//     },
+
+//     // ✅ IMPORTANT FIX
+//     // Controller calculation me discount_type use ho raha tha,
+//     // lekin schema me save nahi ho raha tha.
+//     discount_type: {
+//       type: String,
+//       enum: ["amount", "percent"],
+//       default: "percent",
+//     },
+
+//     total: {
+//       type: Number,
+//       default: 0,
+//     },
+//   },
+//   {
+//     timestamps: true,
+//   }
+// );
+
+// /*
+// |--------------------------------------------------------------------------
+// | ✅ QUERY OPTIMIZATION INDEXES
+// |--------------------------------------------------------------------------
+// */
+// orderItemSchema.index({ order_id: 1, createdAt: 1 });
+// orderItemSchema.index({ order_id: 1, product_id: 1 });
+// orderItemSchema.index({ order_id: 1, category_id: 1 });
+// orderItemSchema.index({ category_id: 1, product_id: 1 });
+
+// module.exports = mongoose.model("OrderItem", orderItemSchema);
+
+
 const mongoose = require("mongoose");
 
 const ORDER_STATUS = {
@@ -35,11 +120,6 @@ payment_term: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Dealer",
     required: true
-  },
-  createdBy:{
-    type:mongoose.Schema.Types.ObjectId,
-    ref:"UserModel",
-    required:true
   },
   order_date: {
     type: Date,
@@ -93,12 +173,17 @@ payment_term: {
     default: 0
   },
 
-  updatedBy:{
-     type:mongoose.Schema.Types.ObjectId,
-    ref:"UserModel",
-    default:null
-  },
+created_by: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "UserModel",
+  required: true
+},
 
+updated_by: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "UserModel",
+  default: null
+},
   status: {
     type: String,
     enum: Object.values(ORDER_STATUS),

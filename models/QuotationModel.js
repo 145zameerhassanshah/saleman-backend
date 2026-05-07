@@ -1,93 +1,117 @@
 const mongoose = require("mongoose");
 
-const quotationSchema = new mongoose.Schema({
-businessId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "IndustryModel",
-    required: true
-  },
-  quotation_number: {
-    type: String,
-    required: true,
-    unique: true,
-    trim: true
-  },
+const quotationSchema = new mongoose.Schema(
+  {
+    businessId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "IndustryModel",
+      required: true,
+      index: true, 
+    },
 
-  dealer_id: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Dealer",
-    required: true
-  },
+    quotation_number: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      index: true, 
+    },
 
-  quotation_date: {
-    type: Date,
-    required: true
-  },
+    dealer_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Dealer",
+      required: true,
+      index: true, 
+    },
 
-  valid_until: {
-    type: Date,
-    default: null
-  },
+    quotation_date: {
+      type: Date,
+      required: true,
+    },
 
-  subtotal: {
-    type: Number,
-    default: 0
-  },
+    valid_until: {
+      type: Date,
+      default: null,
+      index: true, 
+    },
 
-  discount: {
-    type: Number,
-    default: 0
-  },
+    subtotal: {
+      type: Number,
+      default: 0,
+    },
 
-  tax: {
-    type: Number,
-    default: 0
-  },
+    discount: {
+      type: Number,
+      default: 0,
+    },
 
-  discount_type: {
-    type: String,
-    enum: ["percentage", "fixed"],
-    default: "fixed"
-  },
+    tax: {
+      type: Number,
+      default: 0,
+    },
 
-  tax_type: {
-    type: String,
-    enum: ["percentage", "fixed"],
-    default: "fixed"
-  },
+    discount_type: {
+      type: String,
+      enum: ["percentage", "fixed"],
+      default: "fixed",
+    },
 
-  total: {
-    type: Number,
-    default: 0
-  },
+    tax_type: {
+      type: String,
+      enum: ["percentage", "fixed"],
+      default: "fixed",
+    },
 
-  status: {
-    type: String,
-    enum: [ "pending", "approved", "rejected"],
-    default: "pending"
-  },
-created_by: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: "UserModel",
-required: true
-},
-updated_by: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: "UserModel",
-  default: null
-},
-  notes: {
-    type: String,
-    default: null
-  },
+    total: {
+      type: Number,
+      default: 0,
+    },
+
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+      index: true,
+    },
+
+    created_by: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "UserModel",
+      required: true,
+      index: true, 
+    },
+
+    updated_by: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "UserModel",
+      default: null,
+    },
+
+    notes: {
+      type: String,
+      default: null,
+    },
+
     deliveryNotes: {
-    type: String,
-    default: null
+      type: String,
+      default: null,
+    },
+  },
+  {
+    timestamps: true,
   }
+);
 
-
-}, {
-  timestamps: true
-});
+/*
+|--------------------------------------------------------------------------
+| QUERY OPTIMIZATION INDEXES
+|--------------------------------------------------------------------------
+| Ye indexes showAll, search, status filter, role filter aur latest sorting ke liye hain.
+*/
+quotationSchema.index({ businessId: 1, status: 1, createdAt: -1 });
+quotationSchema.index({ businessId: 1, created_by: 1, createdAt: -1 });
+quotationSchema.index({ businessId: 1, dealer_id: 1, createdAt: -1 });
+quotationSchema.index({ businessId: 1, quotation_number: 1 });
+quotationSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model("Quotation", quotationSchema);

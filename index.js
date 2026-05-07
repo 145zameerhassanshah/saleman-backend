@@ -3,7 +3,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const {authMiddleware, roleMiddleware}=require("./middleware/exporter");
 const USER_ROLES=require("./models/userEnum")
-const {userRouter,categoryRouter,subCategoryRouter,quotationRouter,dealerRouter,productRouter,industryRouter,orderRouter,dashboardRoutes} = require("./routes/exporter");
+const {userRouter,categoryRouter,subCategoryRouter,quotationRouter,dealerRouter,productRouter,industryRouter,orderRouter,dashboardRoutes,auditRouter} = require("./routes/exporter");
 require('dotenv').config();
 const connectDB = require('./database/db');
 const app = express();
@@ -35,6 +35,12 @@ app.use("/order",authMiddleware,orderRouter);
 app.use("/industry",authMiddleware,roleMiddleware(USER_ROLES.SUPER_ADMIN),industryRouter);
 // app.use("/setting",authMiddleware,roleMiddleware(USER_ROLES.SUPER_ADMIN,USER_ROLES.ADMIN),settingRouter);
 app.use("/dashboard", dashboardRoutes);
+app.use(
+  "/audit",
+  authMiddleware,
+  roleMiddleware(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.SALESMAN,USER_ROLES.DISPATCHER),
+  auditRouter
+);
 
 
 /* ==============================

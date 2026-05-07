@@ -43,12 +43,17 @@ default:null,    },
         required:true
     },
 
-    createdBy:{
-        type:mongoose.Schema.Types.ObjectId,
-        ref:"Users",
-        required:true,
-    }
+created_by: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "UserModel",
+  required: true
+},
 
+updated_by: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "UserModel",
+  default: null
+}
 },{timestamps:true});
 
 const industryModel=mongoose.model("IndustryModel",industrySchema);

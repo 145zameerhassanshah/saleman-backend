@@ -18,6 +18,14 @@ const createDealer = async (req, res) => {
     if (!/^\S+@\S+\.\S+$/.test(email)) return res.status(400).json({ success: false, message: "Invalid email" });
     if (!phone_number?.trim()) return res.status(400).json({ success: false, message: "Phone required" });
     if (!company_name?.trim()) return res.status(400).json({ success: false, message: "Company required" });
+    if (!city?.trim()) return res.status(400).json({ success: false, message: "City required" });
+    if (!billing_address?.trim()) return res.status(400).json({ success: false, message: "Billing address required" });
+    if (!shipping_address?.trim()) return res.status(400).json({ success: false, message: "Shipping address required" });
+    if (!country?.trim()) return res.status(400).json({ success: false, message: "Country required" });
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "Business logo is required" });
+    }
 
     if (req.user.role === "admin" && !userId) {
       return res.status(400).json({ success: false, message: "Salesman required" });
@@ -26,14 +34,13 @@ const createDealer = async (req, res) => {
     /* UNIQUE */
     const exist = await Dealer.findOne({
       businessId: req.params.businessId,
-      $or: [{ email }, { phone_number }, { company_name }]
+      $or: [{ email }, { phone_number }]
     });
 
     if (exist) {
       return res.status(400).json({ success: false, message: "Dealer already exists" });
     }
 
-    /* ASSIGN */
     const assigned_to = req.user.role === "admin" ? userId : req.user.id;
     const status = req.user.role === "admin" ? "approved" : "pending";
 
@@ -47,7 +54,7 @@ const createDealer = async (req, res) => {
       billing_address,
       shipping_address,
       country,
-      business_logo: req.file ? req.file.path : null,
+      business_logo: req.file.path,
       is_active: is_active === "true" || is_active === true,
       businessId: req.params.businessId,
       created_by: req.user.id,
@@ -70,6 +77,17 @@ const createDealer = async (req, res) => {
     });
 
   } catch (err) {
+
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyValue)[0];
+      const fieldMap = { phone_number: "Phone number", email: "Email" };
+
+      return res.status(400).json({
+        success: false,
+        message: `${fieldMap[field] || field} already exists`
+      });
+    }
+
     res.status(500).json({ success: false, message: err.message });
   }
 };
@@ -88,7 +106,6 @@ const getDealers = async (req, res) => {
       .populate("assigned_to", "name")
       .populate("created_by", "name");
 
-
     res.json({ success: true, dealers });
 
   } catch {
@@ -101,20 +118,21 @@ const getDealers = async (req, res) => {
 const getDealerById = async (req, res) => {
   try {
     const dealer = await Dealer.findById(req.params.dealerId)
-.populate("assigned_to", "name role")
-.populate("created_by", "name role")
-.populate("assignment_history.from", "name role")
-.populate("assignment_history.to", "name role")
-.populate("assignment_history.changed_by", "name role");
+      .populate("assigned_to", "name role")
+      .populate("created_by", "name role")
+      .populate("assignment_history.from", "name role")
+      .populate("assignment_history.to", "name role")
+      .populate("assignment_history.changed_by", "name role");
+
     if (!dealer) return res.status(404).json({ success: false });
 
-    // 🔥 SALESMAN SECURITY
-if (
-  req.user.role === "salesman" &&
-  String(dealer.assigned_to._id) !== String(req.user.id)
-) {
-  return res.status(403).json({ success: false, message: "Access denied" });
-}
+    if (
+      req.user.role === "salesman" &&
+      (!dealer.assigned_to || String(dealer.assigned_to._id) !== String(req.user.id))
+    ) {
+      return res.status(403).json({ success: false, message: "Access denied" });
+    }
+
     res.json({ success: true, dealer });
 
   } catch {
@@ -127,12 +145,51 @@ if (
 const updateDealer = async (req, res) => {
   try {
     const dealer = await Dealer.findById(req.params.dealerId);
-    if (!dealer) return res.status(404).json({ success: false });
 
-    // 🔥 SALESMAN LIMIT
-    if (req.user.role === "salesman" &&
-      String(dealer.assigned_to) !== String(req.user.id)) {
+    if (!dealer) {
+      return res.status(404).json({ success: false, message: "Dealer not found" });
+    }
+
+    if (
+      req.user.role === "salesman" &&
+      String(dealer.assigned_to) !== String(req.user.id)
+    ) {
       return res.status(403).json({ success: false, message: "Not allowed" });
+    }
+
+    /* VALIDATION */
+    if (req.body.name && !req.body.name.trim()) {
+      return res.status(400).json({ success: false, message: "Dealer name cannot be empty" });
+    }
+
+    if (req.body.email && !/^\S+@\S+\.\S+$/.test(req.body.email)) {
+      return res.status(400).json({ success: false, message: "Invalid email" });
+    }
+
+    /* SAFE UNIQUE CHECK */
+    const orConditions = [];
+
+    if (req.body.email) {
+      orConditions.push({ email: req.body.email });
+    }
+
+    if (req.body.phone_number) {
+      orConditions.push({ phone_number: req.body.phone_number });
+    }
+
+    if (orConditions.length > 0) {
+      const exist = await Dealer.findOne({
+        _id: { $ne: req.params.dealerId },
+        businessId: req.params.businessId,
+        $or: orConditions
+      });
+
+      if (exist) {
+        return res.status(400).json({
+          success: false,
+          message: "Dealer already exists with this email or phone"
+        });
+      }
     }
 
     let updateData = {
@@ -142,13 +199,18 @@ const updateDealer = async (req, res) => {
 
     /* IMAGE */
     if (req.file) {
+      if (dealer.business_logo && fs.existsSync(dealer.business_logo)) {
+        fs.unlinkSync(dealer.business_logo);
+      }
       updateData.business_logo = req.file.path;
     }
 
     /* ADMIN REASSIGN */
-    if (req.user.role === "admin" && req.body.userId &&
-      String(req.body.userId) !== String(dealer.assigned_to)) {
-
+    if (
+      req.user.role === "admin" &&
+      req.body.userId &&
+      String(req.body.userId) !== String(dealer.assigned_to)
+    ) {
       dealer.assignment_history.push({
         from: dealer.assigned_to,
         to: req.body.userId,
@@ -159,7 +221,6 @@ const updateDealer = async (req, res) => {
       updateData.assigned_to = req.body.userId;
     }
 
-    /* SALESMAN EDIT */
     if (req.user.role === "salesman" && dealer.status === "approved") {
       updateData.status = "pending";
     }
@@ -174,10 +235,28 @@ const updateDealer = async (req, res) => {
 
     await dealer.save();
 
-    res.json({ success: true, dealer: updated });
+    res.json({
+      success: true,
+      message: "Dealer updated successfully",
+      dealer: updated
+    });
 
-  } catch {
-    res.status(500).json({ success: false });
+  } catch (err) {
+
+    if (err.code === 11000) {
+      const field = Object.keys(err.keyValue)[0];
+      const fieldMap = { phone_number: "Phone number", email: "Email" };
+
+      return res.status(400).json({
+        success: false,
+        message: `${fieldMap[field] || field} already exists`
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: err.message || "Server error"
+    });
   }
 };
 
@@ -209,14 +288,15 @@ const updateDealerStatus = async (req, res) => {
     dealer.rejectReason = status === "rejected" ? rejectReason : "";
     dealer.updated_by = req.user.id;
 
-dealer.assignment_history.push({
-  from: dealer.assigned_to,
-  to: dealer.assigned_to,
-  changed_by: req.user.id,
-  note: status === "rejected"
-    ? `Rejected: ${rejectReason}`
-    : `Status → ${status}`
-});
+    dealer.assignment_history.push({
+      from: dealer.assigned_to,
+      to: dealer.assigned_to,
+      changed_by: req.user.id,
+      note: status === "rejected"
+        ? `Rejected: ${rejectReason}`
+        : `Status → ${status}`
+    });
+
     await dealer.save();
 
     res.json({ success: true });
@@ -252,7 +332,7 @@ const unapproveDealer = async (req, res) => {
 
 const reassignDealer = async (req, res) => {
   try {
-    const { newSalesmanId, reason} = req.body;
+    const { newSalesmanId, reason } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(newSalesmanId)) {
       return res.status(400).json({ success: false });
@@ -261,12 +341,13 @@ const reassignDealer = async (req, res) => {
     const dealer = await Dealer.findById(req.params.id);
     if (!dealer) return res.status(404).json({ success: false });
 
-dealer.assignment_history.push({
-  from: dealer.assigned_to,
-  to: newSalesmanId,
-  changed_by: req.user.id,
-  note: reason?.trim() || "Reassigned"
-});
+    dealer.assignment_history.push({
+      from: dealer.assigned_to,
+      to: newSalesmanId,
+      changed_by: req.user.id,
+      note: reason?.trim() || "Reassigned"
+    });
+
     dealer.assigned_to = newSalesmanId;
     dealer.updated_by = req.user.id;
 
