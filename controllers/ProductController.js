@@ -24,12 +24,13 @@ const getListBusinessId = (req) => {
 const getItemBusinessId = (req) => {
   return (
     req.params.businessId ||
-    req.body.industry ||
-    req.body.businessId ||
+    req.query.businessId ||
+    req.query.industry ||
+    req.body?.industry ||
+    req.body?.businessId ||
     getUserBusinessId(req)
   );
 };
-
 const isValidObjectId = (id) => {
   return id && mongoose.Types.ObjectId.isValid(String(id));
 };
@@ -556,7 +557,10 @@ const deleteProduct = async (req, res) => {
     const product = await Product.findOne({
       _id: id,
       businessId,
-    }).lean();
+    })
+      .populate("category_id", "_id name")
+      .populate("businessId", "_id businessName name")
+      .lean();
 
     if (!product) {
       return res.status(404).json({
@@ -565,18 +569,23 @@ const deleteProduct = async (req, res) => {
       });
     }
 
-    await createAuditLog({
-      req,
-      businessId,
-      module: AUDIT_MODULES.PRODUCT,
-      entityId: product._id,
-      entityModel: "Product",
-      entityLabel: product.name,
-      action: AUDIT_ACTIONS.DELETE,
-      description: `Product ${product.name} deleted`,
-      before: product,
-      after: null,
-    });
+    // Audit log ko delete fail ka reason na banne dein
+    try {
+      await createAuditLog({
+        req,
+        businessId,
+        module: AUDIT_MODULES.PRODUCT,
+        entityId: product._id,
+        entityModel: "Product",
+        entityLabel: product.name,
+        action: AUDIT_ACTIONS.DELETE,
+        description: `Product ${product.name} deleted`,
+        before: product,
+        after: null,
+      });
+    } catch (auditErr) {
+      console.error("DELETE PRODUCT AUDIT ERROR:", auditErr.message);
+    }
 
     await Product.findOneAndDelete({
       _id: id,
@@ -588,6 +597,8 @@ const deleteProduct = async (req, res) => {
       message: "Product deleted successfully",
     });
   } catch (err) {
+    console.error("DELETE PRODUCT ERROR:", err);
+
     return res.status(500).json({
       success: false,
       message: "Delete failed",
@@ -595,7 +606,6 @@ const deleteProduct = async (req, res) => {
     });
   }
 };
-
 module.exports = {
   createProduct,
   getProducts,
