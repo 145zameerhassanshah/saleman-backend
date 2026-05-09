@@ -4,6 +4,7 @@ const {
   quotationItem,
   dealerModel,
   productModel,
+  userModel,
   productCategory,
 } = require("../models/exporter");
 
@@ -313,35 +314,100 @@ async function showAll(req, res) {
       filter.status = String(status).toLowerCase();
     }
 
-    /*
-    |--------------------------------------------------------------------------
-    | QUERY OPTIMIZATION
-    |--------------------------------------------------------------------------
-    | Prefix search index-friendly hoti hai.
-    | Agar contains search chahiye ho to regex me ^ remove kar sakte ho,
-    | lekin wo slow ho sakti hai.
-    */
-    if (search.trim()) {
-      filter.quotation_number = {
-        $regex: `^${escapeRegex(search.trim())}`,
-        $options: "i",
-      };
+    const searchTerm = String(search || "").trim();
+
+    if (searchTerm) {
+      const regex = new RegExp(escapeRegex(searchTerm), "i");
+
+      const numericSearch = Number(searchTerm.replace(/,/g, ""));
+      const isNumericSearch = !Number.isNaN(numericSearch);
+
+      const [matchingDealers, matchingUsers] = await Promise.all([
+        dealerModel
+          .find({
+            businessId,
+            $or: [
+              { name: regex },
+              { company_name: regex },
+              { phone_number: regex },
+              { whatsapp_number: regex },
+              { city: regex },
+              { address: regex },
+            ],
+          })
+          .select("_id")
+          .lean(),
+
+        userModel
+          .find({
+            industry: businessId,
+            $or: [
+              { name: regex },
+              { email: regex },
+              { phone_number: regex },
+              { whatsapp_number: regex },
+              { user_type: regex },
+              { role: regex },
+            ],
+          })
+          .select("_id")
+          .lean(),
+      ]);
+
+      const dealerIds = matchingDealers.map((d) => d._id);
+      const userIds = matchingUsers.map((u) => u._id);
+
+      const searchOr = [
+        { quotation_number: regex },
+        { notes: regex },
+        { deliveryNotes: regex },
+      ];
+
+      if (dealerIds.length > 0) {
+        searchOr.push({
+          dealer_id: {
+            $in: dealerIds,
+          },
+        });
+      }
+
+      if (userIds.length > 0) {
+        searchOr.push({
+          created_by: {
+            $in: userIds,
+          },
+        });
+      }
+
+      if (isNumericSearch) {
+        searchOr.push(
+          { subtotal: numericSearch },
+          { discount: numericSearch },
+          { tax: numericSearch },
+          { total: numericSearch }
+        );
+      }
+
+      filter.$or = searchOr;
     }
 
     const [quotations, total] = await Promise.all([
       quotationModel
         .find(filter)
         .select(
-          "businessId quotation_number dealer_id quotation_date valid_until subtotal discount tax total discount_type tax_type status created_by updated_by deliveryNotes createdAt"
+          "businessId quotation_number dealer_id quotation_date valid_until subtotal discount tax total discount_type tax_type status created_by updated_by deliveryNotes notes createdAt"
         )
         .populate("businessId", "businessName business_logo addressLogo name")
-        .populate("dealer_id", "name phone_number whatsapp_number")
+        .populate(
+          "dealer_id",
+          "name company_name city phone_number whatsapp_number"
+        )
         .populate("created_by", "name email role user_type")
         .populate("updated_by", "name email role user_type")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNumber)
-        .lean(), // ✅ OPTIMIZATION
+        .lean(),
 
       quotationModel.countDocuments(filter),
     ]);
@@ -363,7 +429,6 @@ async function showAll(req, res) {
     });
   }
 }
-
 /* ================================
    CREATE QUOTATION
 ================================ */
@@ -404,7 +469,7 @@ async function create(req, res) {
     const dealer = await dealerModel
       .findOne({ _id: dealer_id, businessId })
       .select("_id")
-      .lean(); // ✅ OPTIMIZATION
+      .lean(); 
 
     if (!dealer) {
       return res.status(404).json({
