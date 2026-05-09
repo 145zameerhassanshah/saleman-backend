@@ -743,7 +743,10 @@ async function getQuotationById(req, res) {
         "businessId quotation_number dealer_id quotation_date valid_until subtotal discount tax total discount_type tax_type status created_by updated_by notes deliveryNotes createdAt"
       )
       .populate("businessId", "businessName business_logo addressLogo name")
-      .populate("dealer_id", "name phone_number whatsapp_number address")
+.populate(
+  "dealer_id",
+  "name company_name city phone_number whatsapp_number address business_logo"
+)
       .populate("created_by", "name email role user_type")
       .populate("updated_by", "name email role user_type")
       .lean(); // ✅ OPTIMIZATION
