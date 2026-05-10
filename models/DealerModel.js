@@ -37,7 +37,7 @@ const DealerSchema = new mongoose.Schema({
 
 business_logo: {
     type: String,
-    required: true
+    default: null
   },
   
 

@@ -23,9 +23,7 @@ const createDealer = async (req, res) => {
     if (!shipping_address?.trim()) return res.status(400).json({ success: false, message: "Shipping address required" });
     if (!country?.trim()) return res.status(400).json({ success: false, message: "Country required" });
 
-    if (!req.file) {
-      return res.status(400).json({ success: false, message: "Business logo is required" });
-    }
+    
 
     if (req.user.role === "admin" && !userId) {
       return res.status(400).json({ success: false, message: "Salesman required" });
@@ -54,8 +52,8 @@ const createDealer = async (req, res) => {
       billing_address,
       shipping_address,
       country,
-      business_logo: req.file.path,
-      is_active: is_active === "true" || is_active === true,
+  business_logo: req.file ? req.file.path : null,
+      is_ve: is_active === "true" || is_active === true,
       businessId: req.params.businessId,
       created_by: req.user.id,
       assigned_to,
