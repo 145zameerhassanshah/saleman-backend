@@ -23,6 +23,8 @@
 // app.get('/', (req, res) => {
 //   res.send('Hello, World!');
 // });
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
@@ -42,8 +44,6 @@ const {
   dashboardRoutes,
   auditRouter,
 } = require("./routes/exporter");
-
-require("dotenv").config();
 
 const connectDB = require("./database/db");
 const app = express();
