@@ -52,7 +52,7 @@ const createDealer = async (req, res) => {
       shipping_address,
       country,
   business_logo: req.file ? req.file.path : null,
-      is_ve: is_active === "true" || is_active === true,
+is_active: is_active === "true" || is_active === true,
       businessId: req.params.businessId,
       created_by: req.user.id,
       assigned_to,
@@ -259,50 +259,116 @@ const updateDealer = async (req, res) => {
 
 /* ================= STATUS ================= */
 
+// const updateDealerStatus = async (req, res) => {
+//   try {
+//     const { status, rejectReason } = req.body;
+
+//     const dealer = await Dealer.findById(req.params.id);
+//     if (!dealer) return res.status(404).json({ success: false });
+
+//     const validTransitions = {
+//       pending: ["approved", "rejected"],
+//       approved: ["unapproved", "rejected"],
+//       unapproved: ["approved"],
+//       rejected: ["approved"]
+//     };
+
+//     if (!validTransitions[dealer.status]?.includes(status)) {
+//       return res.status(400).json({ success: false, message: "Invalid transition" });
+//     }
+
+//     if (status === "rejected" && !rejectReason?.trim()) {
+//       return res.status(400).json({ success: false, message: "Reason required" });
+//     }
+
+//     dealer.status = status;
+//     dealer.rejectReason = status === "rejected" ? rejectReason : "";
+//     dealer.updated_by = req.user.id;
+
+//     dealer.assignment_history.push({
+//       from: dealer.assigned_to,
+//       to: dealer.assigned_to,
+//       changed_by: req.user.id,
+//       note: status === "rejected"
+//         ? `Rejected: ${rejectReason}`
+//         : `Status → ${status}`
+//     });
+
+//     await dealer.save();
+
+//     res.json({ success: true });
+
+//   } catch {
+//     res.status(500).json({ success: false });
+//   }
+// };
 const updateDealerStatus = async (req, res) => {
   try {
     const { status, rejectReason } = req.body;
 
     const dealer = await Dealer.findById(req.params.id);
-    if (!dealer) return res.status(404).json({ success: false });
+
+    if (!dealer) {
+      return res.status(404).json({
+        success: false,
+        message: "Dealer not found",
+      });
+    }
 
     const validTransitions = {
       pending: ["approved", "rejected"],
       approved: ["unapproved", "rejected"],
       unapproved: ["approved"],
-      rejected: ["approved"]
+      rejected: ["approved"],
     };
 
     if (!validTransitions[dealer.status]?.includes(status)) {
-      return res.status(400).json({ success: false, message: "Invalid transition" });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid status transition",
+      });
     }
 
     if (status === "rejected" && !rejectReason?.trim()) {
-      return res.status(400).json({ success: false, message: "Reason required" });
+      return res.status(400).json({
+        success: false,
+        message: "Reject reason is required",
+      });
     }
 
     dealer.status = status;
-    dealer.rejectReason = status === "rejected" ? rejectReason : "";
+    dealer.rejectReason = status === "rejected" ? rejectReason.trim() : "";
     dealer.updated_by = req.user.id;
 
     dealer.assignment_history.push({
       from: dealer.assigned_to,
       to: dealer.assigned_to,
       changed_by: req.user.id,
-      note: status === "rejected"
-        ? `Rejected: ${rejectReason}`
-        : `Status → ${status}`
+      note:
+        status === "rejected"
+          ? `Rejected: ${rejectReason}`
+          : `Status changed to ${status}`,
     });
 
     await dealer.save();
 
-    res.json({ success: true });
+    const messageMap = {
+      approved: "Dealer approved successfully",
+      rejected: "Dealer rejected successfully",
+      unapproved: "Dealer unapproved successfully",
+    };
 
-  } catch {
-    res.status(500).json({ success: false });
+    return res.status(200).json({
+      success: true,
+      message: messageMap[status] || "Dealer status updated successfully",
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Server error",
+    });
   }
 };
-
 /* ================= UNAPPROVE ================= */
 
 const unapproveDealer = async (req, res) => {
@@ -332,17 +398,33 @@ const reassignDealer = async (req, res) => {
     const { newSalesmanId, reason } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(newSalesmanId)) {
-      return res.status(400).json({ success: false });
+      return res.status(400).json({
+        success: false,
+        message: "Invalid salesman id",
+      });
     }
 
     const dealer = await Dealer.findById(req.params.id);
-    if (!dealer) return res.status(404).json({ success: false });
+
+    if (!dealer) {
+      return res.status(404).json({
+        success: false,
+        message: "Dealer not found",
+      });
+    }
+
+    if (String(dealer.assigned_to) === String(newSalesmanId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Dealer is already assigned to this salesman",
+      });
+    }
 
     dealer.assignment_history.push({
       from: dealer.assigned_to,
       to: newSalesmanId,
       changed_by: req.user.id,
-      note: reason?.trim() || "Reassigned"
+      note: reason?.trim() || "Dealer reassigned",
     });
 
     dealer.assigned_to = newSalesmanId;
@@ -350,24 +432,43 @@ const reassignDealer = async (req, res) => {
 
     await dealer.save();
 
-    res.json({ success: true });
-
-  } catch {
-    res.status(500).json({ success: false });
+    return res.status(200).json({
+      success: true,
+      message: "Dealer reassigned successfully",
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Server error",
+    });
   }
 };
-
 /* ================= DELETE ================= */
 
 const deleteDealer = async (req, res) => {
   try {
+    const dealer = await Dealer.findById(req.params.dealerId);
+
+    if (!dealer) {
+      return res.status(404).json({
+        success: false,
+        message: "Dealer not found",
+      });
+    }
+
     await Dealer.findByIdAndDelete(req.params.dealerId);
-    res.json({ success: true });
-  } catch {
-    res.status(500).json({ success: false });
+
+    return res.status(200).json({
+      success: true,
+      message: "Dealer deleted successfully",
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Server error",
+    });
   }
 };
-
 module.exports = {
   createDealer,
   getDealers,
