@@ -24,11 +24,6 @@ const DealerSchema = new mongoose.Schema({
     unique: true
   },
 
-  whatsapp_number: {
-    type: String,
-    required: true,
-    unique: true
-  },
 
   company_name: {
     type: String,

@@ -7,7 +7,7 @@ const fs = require("fs");
 const createDealer = async (req, res) => {
   try {
     const {
-      name, email, phone_number, whatsapp_number,
+      name, email, phone_number, 
       company_name, city, billing_address,
       shipping_address, country, is_active, userId
     } = req.body;
@@ -46,7 +46,6 @@ const createDealer = async (req, res) => {
       name: name.trim(),
       email,
       phone_number,
-      whatsapp_number,
       company_name,
       city,
       billing_address,

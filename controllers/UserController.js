@@ -64,7 +64,7 @@ const sanitizeUser = (user) => {
 };
 async function createUser(req, res) {
   // try {
-    const { email, phone_number, whatsapp_number } = req.body;
+    const { email, phone_number } = req.body;
     /* ================= EMAIL CHECK ================= */
 
     const emailExist = await userModel.findOne({ email });
@@ -79,7 +79,7 @@ async function createUser(req, res) {
     /* ================= PHONE CHECK ================= */
 
     const phoneExist = await userModel.findOne({
-      $or: [{ phone_number }, { whatsapp_number }],
+      $or: [{ phone_number }],
     });
 
     if (phoneExist) {
@@ -107,7 +107,7 @@ async function createUser(req, res) {
     const newUser = new userModel({
       ...req.body,
       password: hashPassword,
-      profile_image, // ✅ added
+      profile_image, 
     });
     await newUser.save();
 
@@ -468,7 +468,6 @@ async function getUsersByIndustry(req, res) {
         { name: { $regex: safeSearch, $options: "i" } },
         { email: { $regex: safeSearch, $options: "i" } },
         { phone_number: { $regex: safeSearch, $options: "i" } },
-        { whatsapp_number: { $regex: safeSearch, $options: "i" } },
         { city: { $regex: safeSearch, $options: "i" } },
         { territory: { $regex: safeSearch, $options: "i" } },
         { designation: { $regex: safeSearch, $options: "i" } },
@@ -610,7 +609,6 @@ async function updateUser(req, res) {
         "city",
         "address",
         "phone_number",
-        "whatsapp_number",
         "status",
         "user_type",
         "industry",
@@ -691,11 +689,6 @@ async function updateUser(req, res) {
       duplicateConditions.push({ phone_number: req.body.phone_number.trim() });
     }
 
-    if (req.body.whatsapp_number) {
-      duplicateConditions.push({
-        whatsapp_number: req.body.whatsapp_number.trim(),
-      });
-    }
 
     if (duplicateConditions.length > 0) {
       const existingUser = await userModel
@@ -720,7 +713,6 @@ async function updateUser(req, res) {
       name: req.body.name?.trim(),
       email: req.body.email?.toLowerCase().trim(),
       phone_number: req.body.phone_number?.trim(),
-      whatsapp_number: req.body.whatsapp_number?.trim(),
       city: req.body.city?.trim(),
       address: req.body.address?.trim(),
       territory: req.body.territory?.trim(),
@@ -777,7 +769,6 @@ async function updateUser(req, res) {
       const fieldMap = {
         phone_number: "Phone number",
         email: "Email",
-        whatsapp_number: "WhatsApp number",
       };
 
       return res.status(400).json({

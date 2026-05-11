@@ -1,29 +1,91 @@
-const express = require('express');
-const cors = require('cors');
-const cookieParser = require('cookie-parser');
-const {authMiddleware, roleMiddleware}=require("./middleware/exporter");
-const USER_ROLES=require("./models/userEnum")
-const {userRouter,categoryRouter,subCategoryRouter,quotationRouter,dealerRouter,productRouter,industryRouter,orderRouter,dashboardRoutes,auditRouter} = require("./routes/exporter");
-require('dotenv').config();
-const connectDB = require('./database/db');
+// const express = require('express');
+// const cors = require('cors');
+// const cookieParser = require('cookie-parser');
+// const {authMiddleware, roleMiddleware}=require("./middleware/exporter");
+// const USER_ROLES=require("./models/userEnum")
+// const {userRouter,categoryRouter,subCategoryRouter,quotationRouter,dealerRouter,productRouter,industryRouter,orderRouter,dashboardRoutes,auditRouter} = require("./routes/exporter");
+// require('dotenv').config();
+// const connectDB = require('./database/db');
+// const app = express();
+// app.use("/uploads", express.static("uploads"));
+
+// connectDB();
+
+// app.use(express.json());
+// app.use(express.urlencoded({ extended: true }));
+// app.use(cookieParser());
+
+// app.use(cors({
+//   origin: process.env.CLIENT_URL,
+//   credentials: true
+// }));
+
+// app.get('/', (req, res) => {
+//   res.send('Hello, World!');
+// });
+const express = require("express");
+const cors = require("cors");
+const cookieParser = require("cookie-parser");
+
+const { authMiddleware, roleMiddleware } = require("./middleware/exporter");
+const USER_ROLES = require("./models/userEnum");
+
+const {
+  userRouter,
+  categoryRouter,
+  subCategoryRouter,
+  quotationRouter,
+  dealerRouter,
+  productRouter,
+  industryRouter,
+  orderRouter,
+  dashboardRoutes,
+  auditRouter,
+} = require("./routes/exporter");
+
+require("dotenv").config();
+
+const connectDB = require("./database/db");
 const app = express();
-app.use("/uploads", express.static("uploads"));
 
 connectDB();
 
+/* VPS / NGINX HTTPS FIX */
+app.set("trust proxy", 1);
+
+/* STATIC FILES */
+app.use("/uploads", express.static("uploads"));
+
+/* BODY PARSER */
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-app.use(cors({
-  origin: process.env.CLIENT_URL,
-  credentials: true
-}));
+/* CORS FIX */
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  process.env.CLIENT_URL_WWW,
+  "http://localhost:3000",
+].filter(Boolean);
 
-app.get('/', (req, res) => {
-  res.send('Hello, World!');
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("CORS blocked: " + origin));
+    },
+    credentials: true,
+  })
+);
+
+app.get("/", (req, res) => {
+  res.send("Hello, World!");
 });
-
 app.use("/users", userRouter);
 app.use("/products",authMiddleware,roleMiddleware(USER_ROLES.ADMIN),productRouter);
 app.use("/dealers",authMiddleware,roleMiddleware(USER_ROLES.ADMIN,USER_ROLES.SALESMAN),dealerRouter);

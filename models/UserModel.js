@@ -167,12 +167,6 @@ const userSchema = new mongoose.Schema(
       index: true,
     },
 
-    whatsapp_number: {
-      type: String,
-      required: true,
-      index: true,
-    },
-
     city: {
       type: String,
       required: true,
@@ -255,7 +249,6 @@ userSchema.index({ industry: 1, user_type: 1, status: 1, createdAt: -1 });
 userSchema.index({ industry: 1, name: 1 });
 userSchema.index({ industry: 1, email: 1 });
 userSchema.index({ industry: 1, phone_number: 1 });
-userSchema.index({ industry: 1, whatsapp_number: 1 });
 userSchema.index({ industry: 1, createdAt: -1 });
 
 module.exports =
