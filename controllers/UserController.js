@@ -148,8 +148,8 @@ const getSalesmen = async (req, res) => {
 };
 async function login(req, res) {
   try {
-    const { email, password } = req.body;
-
+const email = String(req.body.email || "").trim().toLowerCase();
+const password = String(req.body.password || "");
     /* ================= VALIDATION ================= */
 
     if (!email?.trim()) {
@@ -209,7 +209,7 @@ async function login(req, res) {
 
     /* ================= OTP GENERATE ================= */
 
-    const code = AuthService.generateOTP();
+const code = String(AuthService.generateOTP()).trim();
 
     user.otp = code;
     user.otpExpiry = Date.now() + 5 * 60 * 1000;
@@ -218,14 +218,47 @@ async function login(req, res) {
 
     /* ================= SEND EMAIL ================= */
 
-    await sendEmail(
-      email,
-      "User Verification OTP",
-      `<h2>Your OTP is: ${code}</h2>
-       <p>This OTP will expire in 5 minutes.</p>`
-    );
+    // await sendEmail(
+    //   email,
+    //   "User Verification OTP",
+    //   `<h2>Your OTP is: ${code}</h2>
+    //    <p>This OTP will expire in 5 minutes.</p>`
+    // );
+await sendEmail({
+  to: email,
+  subject: "Your WeOrder Verification Code",
+  html: `
+    <div style="font-family: Arial, sans-serif; background:#f6f7f9; padding:24px;">
+      <div style="max-width:520px; margin:auto; background:#ffffff; padding:24px; border-radius:12px;">
+        <h2 style="color:#111; margin-top:0;">WeOrder Verification Code</h2>
 
-    /* ================= RESPONSE ================= */
+        <p style="font-size:15px; color:#333;">
+          Use the verification code below to complete your login.
+        </p>
+
+        <div style="font-size:32px; letter-spacing:6px; font-weight:bold; background:#f1f1f1; padding:16px; text-align:center; border-radius:10px; color:#111;">
+          ${code}
+        </div>
+
+        <p style="font-size:14px; color:#555;">
+          This code will expire in 5 minutes.
+        </p>
+
+        <p style="font-size:13px; color:#777;">
+          If you did not request this code, you can safely ignore this email.
+        </p>
+
+        <hr style="border:none; border-top:1px solid #eee; margin:20px 0;" />
+
+        <p style="font-size:13px; color:#777;">
+          Regards,<br/>
+          WeOrder Team
+        </p>
+      </div>
+    </div>
+  `,
+  text: `Your WeOrder verification code is ${code}. This code will expire in 5 minutes.`,
+});
 
     return res.status(200).json({
       success: true,
@@ -241,48 +274,141 @@ async function login(req, res) {
     });
   }
 }
-async function verifyUser(req, res) {
-  const { email, otp } = req.body;
-  const user = await AuthService.findUser(email);
+// async function verifyUser(req, res) {
+//   const { email, otp } = req.body;
+//   const user = await AuthService.findUser(email);
 
-  if (!user || user.otpExpiry < Date.now() || user.otp !== otp) {
-    return res.status(400).json({
+//   if (!user || user.otpExpiry < Date.now() || user.otp !== otp) {
+//     return res.status(400).json({
+//       success: false,
+//       message: "Invalid or expired code",
+//     });
+//   }
+
+//   const token = AuthService.generateToken(user);
+
+//   res.cookie("token", token, {
+//     httpOnly: true,
+//     secure: false,
+//     sameSite: "strict",
+//     maxAge: 20 * 24 * 60 * 60 * 1000,
+//   });
+
+//   user.otp = null;
+//   user.otpExpiry = null;
+
+//   await user.save();
+
+//   delete user.password;
+//   delete user.__v;
+//   delete user.email_verification_token;
+//   delete user.email_verified_at;
+//   delete user.blocked_until;
+//   delete user.block_reason;
+//   delete user.reject_reason;
+//   delete user.otp;
+//   delete user.otpExpiry;
+
+//   return res.status(200).json({
+//     success: true,
+//     message: "Login successful",
+//     user,
+//   });
+// }
+async function verifyUser(req, res) {
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const otp = String(req.body.otp || "").trim();
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    if (!otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Verification code is required",
+      });
+    }
+
+    const user = await AuthService.findUser(email);
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid verification code",
+      });
+    }
+
+    if (!user.otp || !user.otpExpiry) {
+      return res.status(400).json({
+        success: false,
+        message: "Please login again to request a new verification code",
+      });
+    }
+
+    if (Number(user.otpExpiry) < Date.now()) {
+      return res.status(400).json({
+        success: false,
+        message: "Verification code expired. Please login again",
+      });
+    }
+
+    if (String(user.otp).trim() !== otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid verification code",
+      });
+    }
+
+    const token = AuthService.generateToken(user);
+
+    const isProduction = process.env.NODE_ENV === "production";
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 20 * 24 * 60 * 60 * 1000,
+    });
+
+    user.otp = null;
+    user.otpExpiry = null;
+
+    await user.save();
+
+    const safeUser = user.toObject();
+
+    delete safeUser.password;
+    delete safeUser.__v;
+    delete safeUser.email_verification_token;
+    delete safeUser.email_verified_at;
+    delete safeUser.blocked_until;
+    delete safeUser.block_reason;
+    delete safeUser.reject_reason;
+    delete safeUser.otp;
+    delete safeUser.otpExpiry;
+    delete safeUser.resetPasswordToken;
+    delete safeUser.resetPasswordExpiry;
+
+    return res.status(200).json({
+      success: true,
+      message: "Login successful",
+      user: safeUser,
+    });
+  } catch (err) {
+    console.error("VERIFY USER ERROR:", err);
+
+    return res.status(500).json({
       success: false,
-      message: "Invalid or expired code",
+      message: "Verification failed. Please try again",
     });
   }
-
-  const token = AuthService.generateToken(user);
-
-  res.cookie("token", token, {
-    httpOnly: true,
-    secure: false,
-    sameSite: "strict",
-    maxAge: 20 * 24 * 60 * 60 * 1000,
-  });
-
-  user.otp = null;
-  user.otpExpiry = null;
-
-  await user.save();
-
-  delete user.password;
-  delete user.__v;
-  delete user.email_verification_token;
-  delete user.email_verified_at;
-  delete user.blocked_until;
-  delete user.block_reason;
-  delete user.reject_reason;
-  delete user.otp;
-  delete user.otpExpiry;
-
-  return res.status(200).json({
-    success: true,
-    message: "Login successful",
-    user,
-  });
 }
-
 async function getLoggedInUser(req, res) {
   try {
     const user = req.user;
@@ -325,13 +451,51 @@ async function forgotPassword(req, res) {
 
     const link = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
 
-    await sendEmail(
-      email,
-      "Reset Password",
-      `<h3>Click below to reset your password:</h3>
-       <a href="${link}">${link}</a>`
-    );
+    // await sendEmail(
+    //   email,
+    //   "Reset Password",
+    //   `<h3>Click below to reset your password:</h3>
+    //    <a href="${link}">${link}</a>`
+    // );
+await sendEmail({
+  to: email,
+  subject: "Reset Your WeOrder Password",
+  html: `
+    <div style="font-family: Arial, sans-serif; background:#f6f7f9; padding:24px;">
+      <div style="max-width:520px; margin:auto; background:#ffffff; padding:24px; border-radius:12px;">
+        <h2 style="color:#111; margin-top:0;">Reset Your Password</h2>
 
+        <p style="font-size:15px; color:#333;">
+          We received a request to reset your WeOrder account password.
+        </p>
+
+        <p style="font-size:15px; color:#333;">
+          Click the button below to set a new password:
+        </p>
+
+        <a href="${link}" style="display:inline-block; background:#111; color:#fff; padding:12px 18px; border-radius:8px; text-decoration:none; font-size:14px;">
+          Reset Password
+        </a>
+
+        <p style="font-size:13px; color:#777; margin-top:20px;">
+          This link will expire in 15 minutes.
+        </p>
+
+        <p style="font-size:13px; color:#777;">
+          If you did not request this, you can safely ignore this email.
+        </p>
+
+        <hr style="border:none; border-top:1px solid #eee; margin:20px 0;" />
+
+        <p style="font-size:13px; color:#777;">
+          Regards,<br/>
+          WeOrder Team
+        </p>
+      </div>
+    </div>
+  `,
+  text: `Reset your WeOrder password using this link: ${link}. This link will expire in 15 minutes.`,
+});
     return res.status(200).json({
       success: true,
       message: "Reset link sent",
