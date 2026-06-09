@@ -62,68 +62,140 @@ const sanitizeUser = (user) => {
 
   return obj;
 };
+// async function createUser(req, res) {
+//   // try {
+//     const { email, phone_number } = req.body;
+//     /* ================= EMAIL CHECK ================= */
+
+//     const emailExist = await userModel.findOne({ email });
+
+//     if (emailExist) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "User with similar email already exists",
+//       });
+//     }
+
+//     /* ================= PHONE CHECK ================= */
+
+//     const phoneExist = await userModel.findOne({
+//       $or: [{ phone_number }],
+//     });
+
+//     if (phoneExist) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "User with same phone number already exists",
+//       });
+//     }
+
+//     /* ================= PASSWORD ================= */
+
+//     const hashPassword = await AuthService.hashPassword(req.body.password);
+
+//     /* ================= PROFILE IMAGE ================= */
+
+//     let profile_image = null;
+
+//     if (req.file) {
+//       profile_image = req.file.path;
+//       // OR req.file.path (if using cloud or full path)
+//     }
+
+//     /* ================= CREATE USER ================= */
+
+//     const newUser = new userModel({
+//       ...req.body,
+//       password: hashPassword,
+//       profile_image, 
+//     });
+//     await newUser.save();
+
+//     return res.status(201).json({
+//       success: true,
+//       message: `${req.body.user_type} created successfully`,
+//     });
+//   // } catch (error) {
+//   //   console.error(error);
+//   //   return res.status(500).json({
+//   //     success: false,
+//   //     message: "Server error",
+//   //   });
+//   // }
+// }
 async function createUser(req, res) {
-  // try {
-    const { email, phone_number } = req.body;
-    /* ================= EMAIL CHECK ================= */
+  try {
+    const email = String(req.body.email || "").trim().toLowerCase();
+    const phone_number = String(req.body.phone_number || "").trim();
 
-    const emailExist = await userModel.findOne({ email });
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required" });
+    }
 
-    if (emailExist) {
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      return res.status(400).json({ success: false, message: "Invalid email" });
+    }
+
+    if (!phone_number) {
+      return res.status(400).json({ success: false, message: "Phone number is required" });
+    }
+
+    if (!req.body.password || req.body.password.length < 6) {
       return res.status(400).json({
         success: false,
-        message: "User with similar email already exists",
+        message: "Password must be at least 6 characters",
       });
     }
 
-    /* ================= PHONE CHECK ================= */
-
-    const phoneExist = await userModel.findOne({
-      $or: [{ phone_number }],
+    const existingUser = await userModel.findOne({
+      $or: [{ email }, { phone_number }],
     });
 
-    if (phoneExist) {
+    if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: "User with same phone number already exists",
+        message:
+          existingUser.email === email
+            ? "User with similar email already exists"
+            : "User with same phone number already exists",
       });
     }
-
-    /* ================= PASSWORD ================= */
 
     const hashPassword = await AuthService.hashPassword(req.body.password);
 
-    /* ================= PROFILE IMAGE ================= */
+    const profile_image = req.file ? req.file.path : null;
 
-    let profile_image = null;
-
-    if (req.file) {
-      profile_image = req.file.path;
-      // OR req.file.path (if using cloud or full path)
-    }
-
-    /* ================= CREATE USER ================= */
-
-    const newUser = new userModel({
+    const newUser = await userModel.create({
       ...req.body,
+      email,
+      phone_number,
       password: hashPassword,
-      profile_image, 
+      profile_image,
     });
-    await newUser.save();
 
     return res.status(201).json({
       success: true,
-      message: `${req.body.user_type} created successfully`,
+      message: `${req.body.user_type || "User"} created successfully`,
+      user: sanitizeUser(newUser),
     });
-  // } catch (error) {
-  //   console.error(error);
-  //   return res.status(500).json({
-  //     success: false,
-  //     message: "Server error",
-  //   });
-  // }
-}
+  } catch (error) {
+    console.error("CREATE USER ERROR:", error);
 
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyValue || {})[0];
+
+      return res.status(400).json({
+        success: false,
+        message: `${field === "email" ? "Email" : "Phone number"} already exists`,
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Server error",
+    });
+  }
+}
 const getSalesmen = async (req, res) => {
   try {
     const salesmen = await userModel
