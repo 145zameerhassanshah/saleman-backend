@@ -1050,13 +1050,7 @@ const buildPreparedItems = async (items = []) => {
     );
   });
 
-  if (!validItems.length) {
-    return {
-      success: false,
-      message: "Please add at least one valid order item",
-      items: [],
-    };
-  }
+  if (!validItems.length) return { success: true, items: [] };
 
   for (const item of validItems) {
     const productId = getId(item.product_id);
@@ -1344,6 +1338,7 @@ async function store(req, res) {
   try {
     const {
       dealer_id,
+      dealer_name,
       order_date,
       due_date,
       discount_type = "amount",
@@ -1365,7 +1360,7 @@ async function store(req, res) {
       });
     }
 
-    if (!isValidObjectId(dealer_id)) {
+    if (dealer_id && !isValidObjectId(dealer_id)) {
       return res.status(400).json({
         success: false,
         message: "Invalid dealer id",
@@ -1403,7 +1398,8 @@ async function store(req, res) {
 
     const order = await orderModel.create({
       order_number: orderNumber,
-      dealer_id,
+      dealer_id: dealer_id || null,
+      dealer_name: String(dealer_name || "").trim() || null,
       businessId,
       order_date,
       created_by: userId,
@@ -1422,12 +1418,11 @@ async function store(req, res) {
       status: initialStatus,
     });
 
-    const createdItems = await orderItemModel.insertMany(
-      preparedItems.map((item) => ({
-        order_id: order._id,
-        ...item,
-      }))
-    );
+    const createdItems = preparedItems.length
+      ? await orderItemModel.insertMany(
+          preparedItems.map((item) => ({ order_id: order._id, ...item }))
+        )
+      : [];
 
     await createAuditLog({
       req,
