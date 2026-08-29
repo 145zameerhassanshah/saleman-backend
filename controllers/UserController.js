@@ -66,6 +66,7 @@ async function createUser(req, res) {
   // }
 }
 
+
 const getSalesmen = async (req, res) => {
   try {
     const salesmen = await userModel
