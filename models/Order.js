@@ -119,11 +119,16 @@ payment_term: {
   dealer_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Dealer",
-    required: true
+    default: null
+  },
+  dealer_name: {
+    type: String,
+    trim: true,
+    default: null
   },
   order_date: {
     type: Date,
-    required: true
+    default: Date.now
   },
 
   due_date: {

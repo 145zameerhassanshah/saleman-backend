@@ -111,13 +111,7 @@ const buildPreparedItems = async (items = []) => {
     );
   });
 
-  if (!validItems.length) {
-    return {
-      success: false,
-      message: "Please add at least one valid quotation item",
-      items: [],
-    };
-  }
+  if (!validItems.length) return { success: true, items: [] };
 
   /*
   |--------------------------------------------------------------------------
@@ -448,6 +442,7 @@ async function create(req, res) {
 
     const {
       dealer_id,
+      dealer_name,
       quotation_date,
       valid_until,
       items = [],
@@ -459,23 +454,15 @@ async function create(req, res) {
       deliveryNotes,
     } = req.body;
 
-    if (!dealer_id) {
-      return res.status(400).json({
-        success: false,
-        message: "Dealer required",
-      });
-    }
+    if (dealer_id) {
+      const dealer = await dealerModel
+        .findOne({ _id: dealer_id, businessId })
+        .select("_id")
+        .lean();
 
-    const dealer = await dealerModel
-      .findOne({ _id: dealer_id, businessId })
-      .select("_id")
-      .lean(); 
-
-    if (!dealer) {
-      return res.status(404).json({
-        success: false,
-        message: "Dealer not found",
-      });
+      if (!dealer) {
+        return res.status(404).json({ success: false, message: "Dealer not found" });
+      }
     }
 
     const preparedResult = await buildPreparedItems(items);
@@ -508,7 +495,8 @@ async function create(req, res) {
     const quotation = await quotationModel.create({
       businessId,
       quotation_number: quotationNumber,
-      dealer_id,
+      dealer_id: dealer_id || null,
+      dealer_name: String(dealer_name || "").trim() || null,
       quotation_date,
       valid_until,
       subtotal,
@@ -529,12 +517,11 @@ async function create(req, res) {
     |--------------------------------------------------------------------------
     | Loop ke andar create ki jagah insertMany.
     */
-    const createdItems = await quotationItem.insertMany(
-      preparedItems.map((item) => ({
-        quotation_id: quotation._id,
-        ...item,
-      }))
-    );
+    const createdItems = preparedItems.length
+      ? await quotationItem.insertMany(
+          preparedItems.map((item) => ({ quotation_id: quotation._id, ...item }))
+        )
+      : [];
 
     await createAuditLog({
       req,

@@ -20,13 +20,18 @@ const quotationSchema = new mongoose.Schema(
     dealer_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Dealer",
-      required: true,
+      default: null,
       index: true, 
+    },
+    dealer_name: {
+      type: String,
+      trim: true,
+      default: null,
     },
 
     quotation_date: {
       type: Date,
-      required: true,
+      default: Date.now,
     },
 
     valid_until: {

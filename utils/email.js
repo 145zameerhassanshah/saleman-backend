@@ -46,13 +46,14 @@ async function sendEmail({ to, subject, html, text }) {
 
   return transporter.sendMail({
     from: `"${process.env.EMAIL_FROM_NAME || "WeOrder"}" <${
-      process.env.EMAIL_FROM_EMAIL || process.env.EMAIL_USER
+      process.env.EMAIL_FROM_EMAIL || process.env.EMAIL_FROM || process.env.EMAIL_USER
     }>`,
     to,
     subject,
     html,
     text,
-    replyTo: process.env.EMAIL_FROM_EMAIL || process.env.EMAIL_USER,
+    replyTo:
+      process.env.EMAIL_FROM_EMAIL || process.env.EMAIL_FROM || process.env.EMAIL_USER,
   });
 }
 
