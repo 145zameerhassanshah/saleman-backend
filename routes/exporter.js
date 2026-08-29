@@ -8,6 +8,7 @@ const dealerRouter=require("./dealerRoute");
 const industryRouter=require("./industryRoute");
 const productRouter=require("./productRoute")
 const dashboardRoutes=require("./dashboardRoutes");
+const auditRouter=require("./auditRoutes");
 
 module.exports={
     userRouter,
@@ -19,6 +20,7 @@ module.exports={
     dealerRouter,
     industryRouter,
     productRouter,
-    dashboardRoutes
+    dashboardRoutes,
+auditRouter
 
 }
