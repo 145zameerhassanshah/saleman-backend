@@ -1262,7 +1262,7 @@ async function showAll(req, res) {
       orderModel
         .find(filter)
         .select(
-          "order_number businessId payment_term dealer_id order_date due_date subtotal tax tax_type discount_type discount total total_paid remaining_balance created_by updated_by status notes deliveryNotes rejectReason createdAt"
+          "order_number businessId payment_term dealer_id dealer_name order_date due_date subtotal tax tax_type discount_type discount total total_paid remaining_balance created_by updated_by status notes deliveryNotes rejectReason createdAt"
         )
         .populate("dealer_id", "name phone_number whatsapp_number")
         .populate("businessId", "businessName business_logo addressLogo")
