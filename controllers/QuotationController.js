@@ -389,7 +389,7 @@ async function showAll(req, res) {
       quotationModel
         .find(filter)
         .select(
-          "businessId quotation_number dealer_id quotation_date valid_until subtotal discount tax total discount_type tax_type status created_by updated_by deliveryNotes notes createdAt"
+          "businessId quotation_number dealer_id dealer_name quotation_date valid_until subtotal discount tax total discount_type tax_type status created_by updated_by deliveryNotes notes createdAt"
         )
         .populate("businessId", "businessName business_logo addressLogo name")
         .populate(
@@ -793,7 +793,7 @@ async function getQuotationById(req, res) {
     const quotation = await quotationModel
       .findById(id)
       .select(
-        "businessId quotation_number dealer_id quotation_date valid_until subtotal discount tax total discount_type tax_type status created_by updated_by notes deliveryNotes createdAt"
+        "businessId quotation_number dealer_id dealer_name quotation_date valid_until subtotal discount tax total discount_type tax_type status created_by updated_by notes deliveryNotes createdAt"
       )
       .populate("businessId", "businessName business_logo addressLogo name")
 .populate(
