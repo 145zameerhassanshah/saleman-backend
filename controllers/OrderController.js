@@ -1588,11 +1588,12 @@ async function update(req, res) {
       notes,
       payment_term,
       status,
+      dealer_name,
       deliveryNotes,
       items = [],
     } = req.body;
 
-    if (!isValidObjectId(dealer_id)) {
+    if (dealer_id && !isValidObjectId(dealer_id)) {
       return res.status(400).json({
         success: false,
         message: "Invalid dealer id",
@@ -1629,7 +1630,8 @@ async function update(req, res) {
     const remainingBalance = round2(Math.max(total - totalPaid, 0));
 
     const updatePayload = {
-      dealer_id,
+      dealer_id: dealer_id || null,
+      dealer_name: String(dealer_name || "").trim() || null,
       updated_by: userId,
       order_date,
       due_date: due_date || null,
